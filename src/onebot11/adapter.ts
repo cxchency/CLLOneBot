@@ -49,7 +49,7 @@ class OneBot11Adapter extends Service {
   static inject = [
     'ntMsgApi', 'ntFileApi', 'ntFileCacheApi',
     'ntFriendApi', 'ntGroupApi', 'ntUserApi',
-    'ntWebApi', 'ntSystemApi', 'store', 'app',
+    'ntWebApi', 'ntSystemApi', 'store', 'app', 'groupCache',
   ]
   private ob11WebSocket
   private ob11WebSocketReverseManager

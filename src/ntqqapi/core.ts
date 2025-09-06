@@ -331,6 +331,10 @@ class Core extends Service {
       if (type !== 3){
         return
       }
+      
+      // 更新群组名称缓存
+      this.ctx.groupCache.updateGroups(groups)
+      
       for (const group of groups) {
         if (!group.groupOwnerId.memberUid){
           // 群被解散

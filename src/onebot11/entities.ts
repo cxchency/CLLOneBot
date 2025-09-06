@@ -741,7 +741,7 @@ export namespace OB11Entities {
   }
 
   /**
-   * 获取群名称，提供fallback机制
+   * 获取群名称，使用缓存优化性能
    * @param ctx cordis上下文
    * @param msg 原始消息对象
    * @returns 群名称或undefined
@@ -749,21 +749,37 @@ export namespace OB11Entities {
   export async function getGroupNameWithFallback(ctx: Context, msg: RawMessage): Promise<string | undefined> {
     // 首先尝试使用msg.peerName（只对Group聊天类型有效）
     if (msg.chatType === ChatType.Group && msg.peerName) {
+      // 更新缓存
+      if (msg.peerUid) {
+        ctx.groupCache.setGroupName(msg.peerUid, msg.peerName)
+      }
       return msg.peerName
     }
 
-    // 如果peerName为空或不是群聊，尝试从API获取群列表
-    if (msg.chatType === ChatType.Group && msg.peerUid) {
-      try {
-        const groups = await ctx.ntGroupApi.getGroups()
-        const targetGroup = groups.find(group => group.groupCode === msg.peerUid)
-        return targetGroup?.groupName
-      } catch (error) {
-        ctx.logger.warn('获取群列表失败:', error)
-        return undefined
-      }
+    // 如果不是群聊，返回undefined
+    if (msg.chatType !== ChatType.Group || !msg.peerUid) {
+      return undefined
     }
 
-    return undefined
+    // 尝试从缓存获取群名
+    const cached = ctx.groupCache.getGroupName(msg.peerUid)
+    if (cached) {
+      return cached
+    }
+
+    // 缓存未命中，从API获取群列表并更新缓存
+    try {
+      const groups = await ctx.ntGroupApi.getGroups()
+      
+      // 更新整个缓存
+      ctx.groupCache.updateGroups(groups)
+      
+      // 返回目标群的名称
+      const targetGroup = groups.find(group => group.groupCode === msg.peerUid)
+      return targetGroup?.groupName
+    } catch (error) {
+      ctx.logger.warn('获取群列表失败:', error)
+      return undefined
+    }
   }
 }

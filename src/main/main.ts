@@ -28,6 +28,7 @@ import {
   NTQQWebApi,
   NTQQSystemApi,
 } from '../ntqqapi/api'
+import { GroupCacheService } from '../ntqqapi/services/GroupCacheService'
 import { existsSync, mkdirSync } from 'node:fs'
 import { pmhq } from '@/ntqqapi/native/pmhq'
 import { version } from '../version'
@@ -69,6 +70,7 @@ async function onLoad() {
   ctx.plugin(NTQQUserApi)
   ctx.plugin(NTQQWebApi)
   ctx.plugin(NTQQSystemApi)
+  ctx.plugin(GroupCacheService)
   ctx.plugin(Database)
 
   let started = false
