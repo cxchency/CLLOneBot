@@ -14,15 +14,16 @@ export class GroupMsgEmojiLikeEvent extends OB11GroupNoticeEvent {
   group_id: number
   user_id: number
 
-  constructor(groupId: number, userId: number, messageId: number, likes: MsgEmojiLike[]) {
+  constructor(groupId: number, userId: number, messageId: number, likes: MsgEmojiLike[], groupName?: string) {
     super()
     this.group_id = groupId
     this.user_id = userId // 可为空，表示是对别人的消息操作，如果是对bot自己的消息则不为空
     this.message_id = messageId
     this.likes = likes
+    this.group_name = groupName
   }
 
-  static async parse(ctx: Context, xmlElement: TipXmlElement, groupCode: string) {
+  static async parse(ctx: Context, xmlElement: TipXmlElement, groupCode: string, groupName?: string) {
     const senderUin = xmlElement.templParam.get('jp_uin')
     const msgSeq = xmlElement.templParam.get('msg_seq')
     const emojiId = xmlElement.templParam.get('face_id')
@@ -43,7 +44,8 @@ export class GroupMsgEmojiLikeEvent extends OB11GroupNoticeEvent {
       [{
         emoji_id: emojiId!,
         count: 1,
-      }]
+      }],
+      groupName
     )
   }
 }

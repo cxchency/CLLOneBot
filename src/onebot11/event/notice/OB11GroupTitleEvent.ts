@@ -7,10 +7,11 @@ export class OB11GroupTitleEvent extends OB11GroupNoticeEvent {
   group_id: number
   user_id: number
 
-  constructor(groupId: number, userId: number, title: string) {
+  constructor(groupId: number, userId: number, title: string, groupName?: string) {
     super()
     this.group_id = groupId
     this.user_id = userId
     this.title = title
+    this.group_name = groupName
   }
 }

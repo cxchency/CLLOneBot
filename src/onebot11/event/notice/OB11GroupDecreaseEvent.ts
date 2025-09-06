@@ -9,11 +9,12 @@ export class OB11GroupDecreaseEvent extends OB11GroupNoticeEvent {
   group_id: number
   user_id: number
 
-  constructor(groupId: number, userId: number, operatorId: number, subType: GroupDecreaseSubType = 'leave') {
+  constructor(groupId: number, userId: number, operatorId: number, subType: GroupDecreaseSubType = 'leave', groupName?: string) {
     super()
     this.group_id = groupId
     this.operator_id = operatorId
     this.user_id = userId
     this.sub_type = subType
+    this.group_name = groupName
   }
 }

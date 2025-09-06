@@ -13,10 +13,11 @@ export class OB11GroupUploadNoticeEvent extends OB11GroupNoticeEvent {
   group_id: number
   user_id: number
 
-  constructor(groupId: number, userId: number, file: GroupUploadFile) {
+  constructor(groupId: number, userId: number, file: GroupUploadFile, groupName?: string) {
     super()
     this.group_id = groupId
     this.user_id = userId
     this.file = file
+    this.group_name = groupName
   }
 }

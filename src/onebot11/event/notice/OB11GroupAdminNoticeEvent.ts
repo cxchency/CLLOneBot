@@ -6,10 +6,11 @@ export class OB11GroupAdminNoticeEvent extends OB11GroupNoticeEvent {
   group_id: number
   user_id: number
 
-  constructor(subType: 'set' | 'unset', groupId: number, userId: number) {
+  constructor(subType: 'set' | 'unset', groupId: number, userId: number, groupName?: string) {
     super()
     this.sub_type = subType
     this.group_id = groupId
     this.user_id = userId
+    this.group_name = groupName
   }
 }

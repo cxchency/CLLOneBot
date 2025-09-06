@@ -4,4 +4,5 @@ export abstract class OB11GroupNoticeEvent extends OB11BaseNoticeEvent {
   abstract group_id: number
   abstract user_id: number
   abstract notice_type: string
+  group_name?: string
 }

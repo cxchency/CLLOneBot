@@ -48,6 +48,10 @@ export interface OB11GroupMember {
   // 以下为扩展字段
   is_robot?: boolean
   qage?: number
+  group_name?: string // 群名称
+  birthday_year?: number // 生日年份
+  birthday_month?: number // 生日月份
+  birthday_day?: number // 生日日期
 }
 
 export interface OB11Group {
@@ -70,6 +74,7 @@ interface OB11Sender {
   role?: OB11GroupMemberRole
   group_id?: number // 当私聊 sub_type 为 group 时
   title?: string // 群聊专属头衔
+  is_robot?: boolean // 是否为机器人
 }
 
 export enum OB11MessageType {

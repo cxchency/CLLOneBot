@@ -10,16 +10,17 @@ export class GroupBanEvent extends OB11GroupNoticeEvent {
   group_id: number
   user_id: number
 
-  constructor(groupId: number, userId: number, operatorId: number, duration: number, sub_type: 'ban' | 'lift_ban') {
+  constructor(groupId: number, userId: number, operatorId: number, duration: number, sub_type: 'ban' | 'lift_ban', groupName?: string) {
     super()
     this.group_id = groupId
     this.operator_id = operatorId
     this.user_id = userId
     this.duration = duration
     this.sub_type = sub_type
+    this.group_name = groupName
   }
 
-  static async parse(ctx: Context, groupElement: TipGroupElement, groupCode: string) {
+  static async parse(ctx: Context, groupElement: TipGroupElement, groupCode: string, groupName?: string) {
     const memberUid = groupElement.shutUp?.member.uid
     const adminUid = groupElement.shutUp?.admin.uid
     let memberUin = ''
@@ -34,6 +35,6 @@ export class GroupBanEvent extends OB11GroupNoticeEvent {
     }
     const adminUin = await ctx.ntUserApi.getUinByUid(adminUid!)
     const subType = duration > 0 ? 'ban' : 'lift_ban'
-    return new GroupBanEvent(+groupCode, +memberUin, +adminUin, duration, subType)
+    return new GroupBanEvent(+groupCode, +memberUin, +adminUin, duration, subType, groupName)
   }
 }

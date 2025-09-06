@@ -33,7 +33,7 @@ class GetGroupMemberList extends BaseAction<Payload, OB11GroupMember[]> {
       const member = OB11Entities.groupMember(groupId, item)
       member.join_time ??= date
       member.last_sent_time ??= date
-      ret.push(member)
+            ret.push(member)
     }
 
     return ret

@@ -3,9 +3,11 @@ import GetMsg from './msg/GetMsg'
 import GetLoginInfo from './system/GetLoginInfo'
 import { GetFriendList } from './user/GetFriendList'
 import GetGroupList from './group/GetGroupList'
+import GetUserGroupList from './group/GetUserGroupList'
 import GetGroupInfo from './group/GetGroupInfo'
 import GetGroupMemberList from './group/GetGroupMemberList'
 import GetGroupMemberInfo from './group/GetGroupMemberInfo'
+import GetUserGroupMemberInfoList from './group/GetUserGroupMemberInfoList'
 import SendGroupMsg from './group/SendGroupMsg'
 import SendPrivateMsg from './msg/SendPrivateMsg'
 import SendMsg from './msg/SendMsg'
@@ -151,6 +153,8 @@ export function initActionMap(adapter: Adapter) {
     new GetLoginInfo(adapter),
     new GetFriendList(adapter),
     new GetGroupList(adapter),
+    new GetUserGroupList(adapter),
+    new GetUserGroupMemberInfoList(adapter),
     new GetGroupInfo(adapter),
     new GetGroupMemberList(adapter),
     new GetGroupMemberInfo(adapter),
