@@ -5,29 +5,36 @@ import { Config, OB11Config, SatoriConfig, WebUIConfig } from './types'
 import { DATA_DIR, selfInfo } from './globalVars'
 import { mergeNewProperties } from './utils/misc'
 import { fileURLToPath } from 'node:url'
+import { defaultConfig } from '@/common/defaultConfig'
 
 export class ConfigUtil {
-  private readonly configPath: string
+  private configPath: string | undefined
   private config: Config | null = null
   private watch = false
+  private defaultConfigPath = path.join(path.dirname(fileURLToPath(import.meta.url)), 'default_config.json')
 
-  constructor(configPath: string) {
+  constructor(configPath?: string) {
     this.configPath = configPath
+  }
 
+  setConfigPath(configPath: string) {
+    this.configPath = configPath
   }
 
   listenChange(cb: (config: Config) => void) {
     console.log('配置文件位于', this.configPath)
 
     this.setConfig(this.getConfig())
-    fs.watchFile(this.configPath, { persistent: true, interval: 1000 }, () => {
-      if (!this.watch) {
-        return
-      }
-      console.log('配置重載')
-      const c = this.reloadConfig()
-      cb(c)
-    })
+    if (this.configPath) {
+      fs.watchFile(this.configPath, { persistent: true, interval: 1000 }, () => {
+        if (!this.watch) {
+          return
+        }
+        console.log('配置重載')
+        const c = this.reloadConfig()
+        cb(c)
+      })
+    }
   }
 
   getConfig(cache = true) {
@@ -38,61 +45,26 @@ export class ConfigUtil {
     return this.reloadConfig()
   }
 
+  getDefaultConfig(): Config {
+    const _defaultConfig = { ...defaultConfig }
+    const defaultConfigFromFile = fs.readFileSync(this.defaultConfigPath, 'utf-8')
+    try {
+      const parsedDefaultConfig = JSON5.parse(defaultConfigFromFile)
+      Object.assign(_defaultConfig, parsedDefaultConfig)
+    } catch (e) {
+      console.error('解析 default_config.json 错误', e)
+    }
+    return _defaultConfig
+  }
+
   reloadConfig(): Config {
-    const ob11Default: OB11Config = {
-      enable: true,
-      token: '',
-      httpPort: 3000,
-      httpPostUrls: [],
-      httpSecret: '',
-      wsPort: 3001,
-      wsReverseUrls: [],
-      enableHttp: true,
-      enableHttpPost: true,
-      enableWs: true,
-      enableWsReverse: true,
-      messagePostFormat: 'array',
-      enableHttpHeart: false,
-      reportSelfMessage: false,
+    if (!this.configPath) {
+      return this.getDefaultConfig()
     }
-    const satoriDefault: SatoriConfig = {
-      enable: false,
-      port: 5600,
-      token: '',
-    }
-    const webuiDefault: WebUIConfig = {
-      enable: true,
-      port: 3080,
-      token: '',
-    }
-    const defaultConfig: Config = {
-      webui: webuiDefault,
-      onlyLocalhost: true,
-      satori: satoriDefault,
-      ob11: ob11Default,
-      heartInterval: 60000,
-      enableLocalFile2Url: false,
-      debug: false,
-      log: true,
-      autoDeleteFile: false,
-      autoDeleteFileSecond: 60,
-      musicSignUrl: 'https://llob.linyuchen.net/sign/music',
-      msgCacheExpire: 120,
-      ffmpeg: '',
-      receiveOfflineMsg: false
-    }
-    // console.info('读取配置文件', this.configPath)
     if (!fs.existsSync(this.configPath)) {
-      const defaultConfigPath = path.join(path.dirname(fileURLToPath(import.meta.url)), 'default_config.json')
-      const defaultConfigData = fs.readFileSync(defaultConfigPath, 'utf-8')
-      try {
-        this.config = JSON5.parse(defaultConfigData)
-      } catch (e) {
-        console.error('默认配置文件 default_config.json 内容不合格，使用内置默认配置')
-        this.config = defaultConfig
-      }
-      this.setConfig(this.config!)
-      return this.config!
+      this.config = this.getDefaultConfig()
+      this.setConfig(this.config)
+      return this.config
     }
     else {
       const data = fs.readFileSync(this.configPath, 'utf-8')
@@ -100,18 +72,19 @@ export class ConfigUtil {
       try {
         jsonData = JSON5.parse(data)
         console.info('配置加载成功')
+        mergeNewProperties(defaultConfig, jsonData)
+        this.checkOldConfig(jsonData.ob11, jsonData.ob11, 'wsReverseUrls', 'wsHosts')
+        this.checkOldConfig(jsonData.ob11, jsonData.ob11, 'httpPostUrls', 'httpHosts')
+        this.checkOldConfig(jsonData, jsonData.ob11, 'onlyLocalhost', 'listenLocalhost')
+        jsonData.webui = this.migrateWebUIToken(jsonData.webui)
+        this.setConfig(jsonData)
+        this.config = jsonData
+        return this.config
       } catch (e) {
         console.error(`${this.configPath} json 内容不合格`, e)
-        this.config = defaultConfig
+        this.config = this.getDefaultConfig()
         return this.config
       }
-      mergeNewProperties(defaultConfig, jsonData)
-      this.checkOldConfig(jsonData.ob11, jsonData.ob11, 'wsReverseUrls', 'wsHosts')
-      this.checkOldConfig(jsonData.ob11, jsonData.ob11, 'httpPostUrls', 'httpHosts')
-      this.checkOldConfig(jsonData, jsonData.ob11, 'onlyLocalhost', 'listenLocalhost')
-      this.setConfig(jsonData)
-      this.config = jsonData
-      return this.config
     }
   }
 
@@ -121,11 +94,22 @@ export class ConfigUtil {
   }
 
   writeConfig(config: Config, watch = false) {
-   this.watch = watch
+    if (!this.configPath) {
+      return
+    }
+    this.watch = watch
     fs.writeFileSync(this.configPath, JSON.stringify(config, null, 2), 'utf-8')
     setTimeout(() => {
       this.watch = true
     }, 3000)
+  }
+
+  private migrateWebUIToken(oldWebuiConfig: WebUIConfig & {token?: string}) {
+    if (oldWebuiConfig.token && !webuiTokenUtil.getToken()) {
+      webuiTokenUtil.setToken(oldWebuiConfig.token)
+      delete oldWebuiConfig['token']
+    }
+    return oldWebuiConfig
   }
 
   private checkOldConfig(
@@ -145,10 +129,34 @@ export class ConfigUtil {
 
 let globalConfigUtil: ConfigUtil | null = null
 
-export function getConfigUtil() {
-  const configFilePath = path.join(DATA_DIR, `config_${selfInfo.uin}.json`)
-  if (!globalConfigUtil) {
+export function getConfigUtil(force = false) {
+  const configFilePath = selfInfo.uin ? path.join(DATA_DIR, `config_${selfInfo.uin}.json`) : undefined
+  if (!globalConfigUtil || force) {
     globalConfigUtil = new ConfigUtil(configFilePath)
   }
   return globalConfigUtil
 }
+
+class WebUITokenUtil {
+  private token: string = ''
+
+  constructor(private readonly tokenPath: string) {
+    this.tokenPath = tokenPath
+  }
+
+  getToken() {
+    if (!this.token) {
+      if (fs.existsSync(this.tokenPath)) {
+        this.token = fs.readFileSync(this.tokenPath, 'utf-8').trim()
+      }
+    }
+    return this.token
+  }
+
+  setToken(token: string) {
+    this.token = token.trim()
+    fs.writeFileSync(this.tokenPath, token, 'utf-8')
+  }
+}
+
+export const webuiTokenUtil = new WebUITokenUtil(path.join(DATA_DIR, 'webui_token.txt'))

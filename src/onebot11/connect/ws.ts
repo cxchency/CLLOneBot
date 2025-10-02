@@ -1,7 +1,6 @@
 import { BaseAction } from '../action/BaseAction'
 import { Context } from 'cordis'
 import { WebSocket, WebSocketServer } from 'ws'
-import { llonebotError } from '@/common/globalVars'
 import { IncomingMessage } from 'node:http'
 import { OB11Return, OB11Message } from '../types'
 import { OB11Response } from '../action/OB11Response'
@@ -28,7 +27,6 @@ class OB11WebSocket {
       port: this.config.port,
       maxPayload: 1024 * 1024 * 1024
     })
-    llonebotError.wsServerError = ''
     this.wsServer.on('error', (err: Error) => {
       this.ctx.logger.error('OneBot V11 正向 WS 错误', err)
     })
@@ -40,7 +38,6 @@ class OB11WebSocket {
 
   public stop() {
     return new Promise<boolean>((resolve) => {
-      llonebotError.wsServerError = ''
       this.ctx.logger.info('OneBot V11 WebSocket Server closing...')
       this.wsClients.forEach(({ socket }) => {
         try {
@@ -122,11 +119,11 @@ class OB11WebSocket {
       receive = JSON.parse(msg.toString())
       this.ctx.logger.info('收到正向 Websocket 消息', receive)
     } catch (e) {
-      return this.reply(socket, OB11Response.error('json解析失败，请检查数据格式', 1400))
+      return this.reply(socket, OB11Response.error('JSON 解析失败，请检查数据格式', 1400))
     }
     const action = this.config.actionMap.get(receive.action!)!
     if (!action) {
-      return this.reply(socket, OB11Response.error('不支持的api ' + receive.action, 1404, receive.echo))
+      return this.reply(socket, OB11Response.error(`${receive.action} API 不存在`, 1404, receive.echo))
     }
     const handleResult = await action.websocketHandle(receive.params, receive.echo)
     this.reply(socket, handleResult)
@@ -222,11 +219,11 @@ class OB11WebSocketReverse {
       receive = JSON.parse(msg.toString())
       this.ctx.logger.info('收到反向 Websocket 消息', receive)
     } catch (e) {
-      return this.reply(this.wsClient!, OB11Response.error('json解析失败，请检查数据格式', 1400, receive.echo))
+      return this.reply(this.wsClient!, OB11Response.error('JSON 解析失败，请检查数据格式', 1400, receive.echo))
     }
     const action = this.config.actionMap.get(receive.action!)!
     if (!action) {
-      return this.reply(this.wsClient!, OB11Response.error('不支持的api ' + receive.action, 1404, receive.echo))
+      return this.reply(this.wsClient!, OB11Response.error(`${receive.action} API 不存在`, 1404, receive.echo))
     }
     const handleResult = await action.websocketHandle(receive.params, receive.echo)
     this.reply(this.wsClient!, handleResult)
@@ -244,7 +241,7 @@ class OB11WebSocketReverse {
         'X-Self-ID': selfInfo.uin,
         'Authorization': `Bearer ${this.config.token}`,
         'x-client-role': 'Universal', // koishi-adapter-onebot 需要这个字段
-        'User-Agent': `LLOneBot/${version}`,
+        'User-Agent': `LLTwoBot/${version}`,
       },
     })
     this.ctx.logger.info('Trying to connect to the websocket server: ' + this.config.url)

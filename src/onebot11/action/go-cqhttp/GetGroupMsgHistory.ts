@@ -46,7 +46,7 @@ export class GetGroupMsgHistory extends BaseAction<Payload, Response> {
       }
       return OB11Entities.message(this.ctx, rawMsg)
     }))
-    return filterNullable(ob11MsgList)
+    return { list: filterNullable(ob11MsgList), seq: +msgList[0].msgSeq }
   }
 
   protected async _handle(payload: Payload): Promise<Response> {
@@ -85,7 +85,7 @@ export class GetGroupMsgHistory extends BaseAction<Payload, Response> {
         messages.unshift(...res)
       }
       
-      count -= res.length
+      count -= res.list.length
     }
 
     return { messages }

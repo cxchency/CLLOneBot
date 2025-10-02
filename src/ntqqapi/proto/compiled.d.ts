@@ -2518,6 +2518,15 @@ export namespace RichMedia {
 
         /** PicExtBizInfo summary */
         summary?: (string|null);
+
+        /** PicExtBizInfo fromScene */
+        fromScene?: (number|null);
+
+        /** PicExtBizInfo toScene */
+        toScene?: (number|null);
+
+        /** PicExtBizInfo oldFileId */
+        oldFileId?: (number|null);
     }
 
     /** Represents a PicExtBizInfo. */
@@ -2534,6 +2543,15 @@ export namespace RichMedia {
 
         /** PicExtBizInfo summary. */
         public summary: string;
+
+        /** PicExtBizInfo fromScene. */
+        public fromScene: number;
+
+        /** PicExtBizInfo toScene. */
+        public toScene: number;
+
+        /** PicExtBizInfo oldFileId. */
+        public oldFileId: number;
 
         /**
          * Encodes the specified PicExtBizInfo message. Does not implicitly {@link RichMedia.PicExtBizInfo.verify|verify} messages.
@@ -4584,6 +4602,108 @@ export namespace Oidb {
 
         /**
          * Gets the default type url for PrivateFileResponseDownload
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    /** Properties of a GroupClockIn. */
+    interface IGroupClockIn {
+
+        /** GroupClockIn body */
+        body?: (Oidb.IGroupClockInBody|null);
+    }
+
+    /** Represents a GroupClockIn. */
+    class GroupClockIn implements IGroupClockIn {
+
+        /**
+         * Constructs a new GroupClockIn.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: Oidb.IGroupClockIn);
+
+        /** GroupClockIn body. */
+        public body?: (Oidb.IGroupClockInBody|null);
+
+        /**
+         * Encodes the specified GroupClockIn message. Does not implicitly {@link Oidb.GroupClockIn.verify|verify} messages.
+         * @param message GroupClockIn message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: Oidb.IGroupClockIn, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes a GroupClockIn message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns GroupClockIn
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): Oidb.GroupClockIn;
+
+        /**
+         * Gets the default type url for GroupClockIn
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    /** Properties of a GroupClockInBody. */
+    interface IGroupClockInBody {
+
+        /** GroupClockInBody uin */
+        uin?: (string|null);
+
+        /** GroupClockInBody groupCode */
+        groupCode?: (string|null);
+
+        /** GroupClockInBody appVersion */
+        appVersion?: (string|null);
+    }
+
+    /** Represents a GroupClockInBody. */
+    class GroupClockInBody implements IGroupClockInBody {
+
+        /**
+         * Constructs a new GroupClockInBody.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: Oidb.IGroupClockInBody);
+
+        /** GroupClockInBody uin. */
+        public uin: string;
+
+        /** GroupClockInBody groupCode. */
+        public groupCode: string;
+
+        /** GroupClockInBody appVersion. */
+        public appVersion: string;
+
+        /**
+         * Encodes the specified GroupClockInBody message. Does not implicitly {@link Oidb.GroupClockInBody.verify|verify} messages.
+         * @param message GroupClockInBody message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: Oidb.IGroupClockInBody, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes a GroupClockInBody message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns GroupClockInBody
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): Oidb.GroupClockInBody;
+
+        /**
+         * Gets the default type url for GroupClockInBody
          * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
          * @returns The default type url
          */

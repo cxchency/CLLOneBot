@@ -1,4 +1,4 @@
-import { MiniProfile, ProfileBizType, SimpleInfo, UserDetailInfoV2, UserDetailSource } from '../types'
+import { MiniProfile, ProfileBizType, SimpleInfo, UserDetailInfo, UserDetailSource } from '../types'
 import { invoke } from '../ntcall'
 import { RequestUtil } from '@/common/utils/request'
 import { Time } from 'cosmokit'
@@ -14,8 +14,6 @@ declare module 'cordis' {
 }
 
 export class NTQQUserApi extends Service {
-  static inject = ['ntFriendApi', 'ntGroupApi']
-
   constructor(protected ctx: Context) {
     super(ctx, 'ntUserApi', true)
   }
@@ -114,7 +112,7 @@ export class NTQQUserApi extends Service {
   }
 
   async getUserDetailInfoWithBizInfo(uid: string) {
-    const result = await invoke<UserDetailInfoV2>(
+    const result = await invoke<UserDetailInfo>(
       'nodeIKernelProfileService/getUserDetailInfoWithBizInfo',
       [
         uid,
@@ -189,7 +187,6 @@ export class NTQQUserApi extends Service {
     )
   }
 
-
   async forceFetchClientKey() {
     return await invoke('nodeIKernelTicketService/forceFetchClientKey', [''])
   }
@@ -242,7 +239,6 @@ export class NTQQUserApi extends Service {
     ])
   }
 
-
   async getRobotUinRange() {
     const data = await invoke(
       'nodeIKernelRobotService/getRobotUinRange',
@@ -271,5 +267,24 @@ export class NTQQUserApi extends Service {
 
   async getRecentContactListSnapShot(count: number) {
     return await invoke('nodeIKernelRecentContactService/getRecentContactListSnapShot', [count])
+  }
+
+  async getUserInfoCompatible(uid: string) {
+    const funcs = [
+      () => this.getUserSimpleInfo(uid, false),
+      () => this.getUserSimpleInfo(uid, true),
+      async () => (await this.fetchUserDetailInfo(uid)).simpleInfo,
+      async () => (await this.getUserDetailInfoWithBizInfo(uid)).simpleInfo,
+      async () => (await this.getCoreAndBaseInfo([uid])).get(uid)
+    ]
+    for (const func of funcs) {
+      try {
+        const res = await func()
+        if (res) return res
+      } catch (e) {
+
+      }
+    }
+    throw new Error(`获取用户信息失败, uid: ${uid}`)
   }
 }

@@ -6251,6 +6251,9 @@ export const RichMedia = $root.RichMedia = (() => {
          * @interface IPicExtBizInfo
          * @property {number|null} [bizType] PicExtBizInfo bizType
          * @property {string|null} [summary] PicExtBizInfo summary
+         * @property {number|null} [fromScene] PicExtBizInfo fromScene
+         * @property {number|null} [toScene] PicExtBizInfo toScene
+         * @property {number|null} [oldFileId] PicExtBizInfo oldFileId
          */
 
         /**
@@ -6285,6 +6288,30 @@ export const RichMedia = $root.RichMedia = (() => {
         PicExtBizInfo.prototype.summary = "";
 
         /**
+         * PicExtBizInfo fromScene.
+         * @member {number} fromScene
+         * @memberof RichMedia.PicExtBizInfo
+         * @instance
+         */
+        PicExtBizInfo.prototype.fromScene = 0;
+
+        /**
+         * PicExtBizInfo toScene.
+         * @member {number} toScene
+         * @memberof RichMedia.PicExtBizInfo
+         * @instance
+         */
+        PicExtBizInfo.prototype.toScene = 0;
+
+        /**
+         * PicExtBizInfo oldFileId.
+         * @member {number} oldFileId
+         * @memberof RichMedia.PicExtBizInfo
+         * @instance
+         */
+        PicExtBizInfo.prototype.oldFileId = 0;
+
+        /**
          * Encodes the specified PicExtBizInfo message. Does not implicitly {@link RichMedia.PicExtBizInfo.verify|verify} messages.
          * @function encode
          * @memberof RichMedia.PicExtBizInfo
@@ -6300,6 +6327,12 @@ export const RichMedia = $root.RichMedia = (() => {
                 writer.uint32(/* id 1, wireType 0 =*/8).uint32(message.bizType);
             if (message.summary != null && Object.hasOwnProperty.call(message, "summary"))
                 writer.uint32(/* id 2, wireType 2 =*/18).string(message.summary);
+            if (message.fromScene != null && Object.hasOwnProperty.call(message, "fromScene"))
+                writer.uint32(/* id 1001, wireType 0 =*/8008).uint32(message.fromScene);
+            if (message.toScene != null && Object.hasOwnProperty.call(message, "toScene"))
+                writer.uint32(/* id 1002, wireType 0 =*/8016).uint32(message.toScene);
+            if (message.oldFileId != null && Object.hasOwnProperty.call(message, "oldFileId"))
+                writer.uint32(/* id 1003, wireType 0 =*/8024).uint32(message.oldFileId);
             return writer;
         };
 
@@ -6329,6 +6362,18 @@ export const RichMedia = $root.RichMedia = (() => {
                     }
                 case 2: {
                         message.summary = reader.string();
+                        break;
+                    }
+                case 1001: {
+                        message.fromScene = reader.uint32();
+                        break;
+                    }
+                case 1002: {
+                        message.toScene = reader.uint32();
+                        break;
+                    }
+                case 1003: {
+                        message.oldFileId = reader.uint32();
                         break;
                     }
                 default:
@@ -10954,6 +10999,234 @@ export const Oidb = $root.Oidb = (() => {
         };
 
         return PrivateFileResponseDownload;
+    })();
+
+    Oidb.GroupClockIn = (function() {
+
+        /**
+         * Properties of a GroupClockIn.
+         * @memberof Oidb
+         * @interface IGroupClockIn
+         * @property {Oidb.IGroupClockInBody|null} [body] GroupClockIn body
+         */
+
+        /**
+         * Constructs a new GroupClockIn.
+         * @memberof Oidb
+         * @classdesc Represents a GroupClockIn.
+         * @implements IGroupClockIn
+         * @constructor
+         * @param {Oidb.IGroupClockIn=} [properties] Properties to set
+         */
+        function GroupClockIn(properties) {
+            if (properties)
+                for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * GroupClockIn body.
+         * @member {Oidb.IGroupClockInBody|null|undefined} body
+         * @memberof Oidb.GroupClockIn
+         * @instance
+         */
+        GroupClockIn.prototype.body = null;
+
+        /**
+         * Encodes the specified GroupClockIn message. Does not implicitly {@link Oidb.GroupClockIn.verify|verify} messages.
+         * @function encode
+         * @memberof Oidb.GroupClockIn
+         * @static
+         * @param {Oidb.IGroupClockIn} message GroupClockIn message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        GroupClockIn.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.body != null && Object.hasOwnProperty.call(message, "body"))
+                $root.Oidb.GroupClockInBody.encode(message.body, writer.uint32(/* id 2, wireType 2 =*/18).fork()).ldelim();
+            return writer;
+        };
+
+        /**
+         * Decodes a GroupClockIn message from the specified reader or buffer.
+         * @function decode
+         * @memberof Oidb.GroupClockIn
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {Oidb.GroupClockIn} GroupClockIn
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        GroupClockIn.decode = function decode(reader, length, error) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            let end = length === undefined ? reader.len : reader.pos + length, message = new $root.Oidb.GroupClockIn();
+            while (reader.pos < end) {
+                let tag = reader.uint32();
+                if (tag === error)
+                    break;
+                switch (tag >>> 3) {
+                case 2: {
+                        message.body = $root.Oidb.GroupClockInBody.decode(reader, reader.uint32());
+                        break;
+                    }
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Gets the default type url for GroupClockIn
+         * @function getTypeUrl
+         * @memberof Oidb.GroupClockIn
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        GroupClockIn.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/Oidb.GroupClockIn";
+        };
+
+        return GroupClockIn;
+    })();
+
+    Oidb.GroupClockInBody = (function() {
+
+        /**
+         * Properties of a GroupClockInBody.
+         * @memberof Oidb
+         * @interface IGroupClockInBody
+         * @property {string|null} [uin] GroupClockInBody uin
+         * @property {string|null} [groupCode] GroupClockInBody groupCode
+         * @property {string|null} [appVersion] GroupClockInBody appVersion
+         */
+
+        /**
+         * Constructs a new GroupClockInBody.
+         * @memberof Oidb
+         * @classdesc Represents a GroupClockInBody.
+         * @implements IGroupClockInBody
+         * @constructor
+         * @param {Oidb.IGroupClockInBody=} [properties] Properties to set
+         */
+        function GroupClockInBody(properties) {
+            if (properties)
+                for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * GroupClockInBody uin.
+         * @member {string} uin
+         * @memberof Oidb.GroupClockInBody
+         * @instance
+         */
+        GroupClockInBody.prototype.uin = "";
+
+        /**
+         * GroupClockInBody groupCode.
+         * @member {string} groupCode
+         * @memberof Oidb.GroupClockInBody
+         * @instance
+         */
+        GroupClockInBody.prototype.groupCode = "";
+
+        /**
+         * GroupClockInBody appVersion.
+         * @member {string} appVersion
+         * @memberof Oidb.GroupClockInBody
+         * @instance
+         */
+        GroupClockInBody.prototype.appVersion = "";
+
+        /**
+         * Encodes the specified GroupClockInBody message. Does not implicitly {@link Oidb.GroupClockInBody.verify|verify} messages.
+         * @function encode
+         * @memberof Oidb.GroupClockInBody
+         * @static
+         * @param {Oidb.IGroupClockInBody} message GroupClockInBody message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        GroupClockInBody.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.uin != null && Object.hasOwnProperty.call(message, "uin"))
+                writer.uint32(/* id 1, wireType 2 =*/10).string(message.uin);
+            if (message.groupCode != null && Object.hasOwnProperty.call(message, "groupCode"))
+                writer.uint32(/* id 2, wireType 2 =*/18).string(message.groupCode);
+            if (message.appVersion != null && Object.hasOwnProperty.call(message, "appVersion"))
+                writer.uint32(/* id 3, wireType 2 =*/26).string(message.appVersion);
+            return writer;
+        };
+
+        /**
+         * Decodes a GroupClockInBody message from the specified reader or buffer.
+         * @function decode
+         * @memberof Oidb.GroupClockInBody
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {Oidb.GroupClockInBody} GroupClockInBody
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        GroupClockInBody.decode = function decode(reader, length, error) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            let end = length === undefined ? reader.len : reader.pos + length, message = new $root.Oidb.GroupClockInBody();
+            while (reader.pos < end) {
+                let tag = reader.uint32();
+                if (tag === error)
+                    break;
+                switch (tag >>> 3) {
+                case 1: {
+                        message.uin = reader.string();
+                        break;
+                    }
+                case 2: {
+                        message.groupCode = reader.string();
+                        break;
+                    }
+                case 3: {
+                        message.appVersion = reader.string();
+                        break;
+                    }
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Gets the default type url for GroupClockInBody
+         * @function getTypeUrl
+         * @memberof Oidb.GroupClockInBody
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        GroupClockInBody.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/Oidb.GroupClockInBody";
+        };
+
+        return GroupClockInBody;
     })();
 
     return Oidb;

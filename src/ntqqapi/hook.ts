@@ -2,8 +2,11 @@ import { randomUUID } from 'node:crypto'
 import { Awaitable } from 'cosmokit'
 import { NTMethod } from './ntcall'
 import { pmhq } from '@/ntqqapi/native/pmhq'
+import { NodeIKernelLoginListener, NodeIKernelBuddyListener } from '@/ntqqapi/listeners'
 
 export enum ReceiveCmdS {
+  INIT = 'nodeIQQNTWrapperSessionListener/onSessionInitComplete',
+  LOGIN_QR_CODE = 'nodeIKernelLoginListener/onQRCodeGetPicture',
   RECENT_CONTACT = 'nodeIKernelRecentContactListener/onRecentContactListChangedVer2',
   UPDATE_MSG = 'nodeIKernelMsgListener/onMsgInfoListUpdate',
   UPDATE_ACTIVE_MSG = 'nodeIKernelMsgListener/onActiveMsgInfoUpdate',
@@ -51,13 +54,13 @@ const NT_RECV_PMHQ_TYPE_TO_NT_METHOD = {
 }
 
 export function startHook() {
-
   pmhq.addResListener((data) => {
     let listenerName = data.type
-    if ('sub_type' in data.data && listenerName in NT_RECV_PMHQ_TYPE_TO_NT_METHOD) {
+    if ('sub_type' in data.data) {
       const sub_type = data.data.sub_type
-      const ntCmd: ReceiveCmdS = (NT_RECV_PMHQ_TYPE_TO_NT_METHOD[listenerName as keyof typeof NT_RECV_PMHQ_TYPE_TO_NT_METHOD] + '/' + sub_type) as ReceiveCmdS
-      if (logHook){
+      const convertedListenerName = NT_RECV_PMHQ_TYPE_TO_NT_METHOD[listenerName as keyof typeof NT_RECV_PMHQ_TYPE_TO_NT_METHOD] || listenerName
+      const ntCmd: ReceiveCmdS = (convertedListenerName + '/' + sub_type) as ReceiveCmdS
+      if (logHook) {
         console.info(ntCmd, data.data)
       }
       for (const hook of receiveHooks.values()) {
@@ -69,12 +72,30 @@ export function startHook() {
   })
 }
 
+export interface NTListener {
+  nodeIKernelLoginListener: NodeIKernelLoginListener
+  nodeIKernelBuddyListener: NodeIKernelBuddyListener
+}
 
-export function registerReceiveHook<PayloadType>(
-  method: string | string[],
-  hookFunc: (payload: PayloadType) => Awaitable<void>,
+// 辅助类型：从method字符串推断出对应的payload类型
+export type InferPayloadFromMethod<T extends string> =
+  T extends `${infer S}/${infer M}`
+    ? S extends keyof NTListener
+      ? M extends keyof NTListener[S]
+        ? NTListener[S][M] extends (...args: any) => unknown
+          ? Parameters<NTListener[S][M]>[0]
+          : never
+        : never
+      : never
+    : never
+
+export function registerReceiveHook<
+  PayloadType = any,
+  Method extends string = string
+>(
+  method: Method | Method[],
+  hookFunc: (payload: InferPayloadFromMethod<Method> extends never ? PayloadType : InferPayloadFromMethod<Method>) => Awaitable<void>,
 ): string {
-
   const id = randomUUID()
   if (!Array.isArray(method)) {
     method = [method]

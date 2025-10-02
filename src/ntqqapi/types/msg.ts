@@ -601,17 +601,6 @@ export interface QueryMsgsParams {
   isIncludeCurrent: boolean
 }
 
-export interface TmpChatInfoApi extends GeneralCallResult {
-  tmpChatInfo?: {
-    chatType: number
-    fromNick: string
-    groupCode: string
-    peerUid: string
-    sessionType: number
-    sig: string
-  }
-}
-
 export interface GetFileListParam {
   sortType: number
   fileCount: number
@@ -622,18 +611,47 @@ export interface GetFileListParam {
 }
 
 export interface RichMediaUploadCompleteNotify {
+  fileModelId: string
+  msgElementId: string
+  msgId: string
   fileId: string
+  fileProgress: string
+  fileSpeed: string
+  fileErrCode: string
+  fileErrMsg: string
   fileDownType: number
+  thumbSize: number
   filePath: string
   totalSize: string
   trasferStatus: number
+  step: number
   commonFileInfo: {
+    fileModelId: string
+    msgId: string
+    elemId: string
     uuid: string
+    subId: string
     fileName: string
     fileSize: string
+    msgTime: string
+    peerUid: string
+    chatType: number
     md5: string
+    md510m: string
     sha: string
-  }
+    sha3: string
+    parent: unknown
+    favId: unknown
+    bizType: number
+    picThumbPath: unknown
+  },
+  fileSrvErrCode: string
+  clientMsg: string
+  businessId: number
+  userTotalSpacePerDay: unknown
+  userUsedSpacePerDay: unknown
+  msgRecord: unknown
+  chatType: number
 }
 
 export enum RMBizType {

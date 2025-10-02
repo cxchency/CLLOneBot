@@ -40,6 +40,17 @@ sed -i "/\"satori\": {/,/}/ {
 sed -i "s/\"onlyLocalhost\":\s*true/\"onlyLocalhost\": false/g" "$FILE"
 sed -i "s|\"ffmpeg\":\s*\"\"|\"ffmpeg\": \"/usr/bin/ffmpeg\"|g" "$FILE"
 
+WEBUI_TOKEN_FILE='/app/llonebot/data/webui_token.txt'
+
+# Check dir
+if [ ! -d "/app/llonebot/data" ]; then
+  mkdir /app/llonebot/data
+fi
+
+if [ ! -f "$WEBUI_TOKEN_FILE" ]; then
+  echo "$WEBUI_TOKEN" > "$WEBUI_TOKEN_FILE"
+fi
+
 port="13000"
 host="pmhq"
 if [ -n "$pmhq_port" ]; then

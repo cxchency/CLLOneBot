@@ -1,19 +1,20 @@
-import { LLOneBotError } from './types'
 import { SelfInfo } from '../ntqqapi/types'
 import path from 'node:path'
 import * as os from 'node:os'
 import fs from 'fs'
-
-export const llonebotError: LLOneBotError = {
-  ffmpegError: '',
-  httpServerError: '',
-  wsServerError: '',
-  otherError: 'LLOneBot 未能正常启动，请检查日志查看错误',
-}
+import { existsSync, mkdirSync } from 'node:fs'
 
 export const DATA_DIR: string = path.resolve('data')
+if (!existsSync(DATA_DIR)) {
+  mkdirSync(DATA_DIR)
+}
 export const TEMP_DIR: string = path.join(DATA_DIR, 'temp')
 export const LOG_DIR = path.join(DATA_DIR, 'logs')
+
+export const dbDir = path.join(DATA_DIR, 'database')
+if (!existsSync(dbDir)) {
+  mkdirSync(dbDir)
+}
 
 export function getFixedDataDir() {
   let dataDir: string = ''

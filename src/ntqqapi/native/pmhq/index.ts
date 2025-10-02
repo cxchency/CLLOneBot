@@ -56,9 +56,26 @@ interface PMHQReqCall {
   }
 }
 
-export type PMHQRes = PMHQResSendPB | PMHQResRecvPB | PMHQResOn | PMHQResCall
+interface PMHQReqTellPort {
+  type: 'tell_port',
+  data: {
+    echo?: string
+    webui_port: number
+  }
+}
 
-export type PMHQReq = PMHQReqSendPB | PMHQReqCall
+interface PMHQResTellPort {
+  type: 'tell_port',
+  data: {
+    echo?: string
+    success: boolean
+  }
+}
+
+
+export type PMHQRes = PMHQResSendPB | PMHQResRecvPB | PMHQResOn | PMHQResCall | PMHQResTellPort
+
+export type PMHQReq = PMHQReqSendPB | PMHQReqCall | PMHQReqTellPort
 
 interface ResListener<R extends PMHQRes> {
   (data: R): void
@@ -155,7 +172,7 @@ export class PMHQ {
 
     this.ws.onerror = (error) => {
       selfInfo.online = false
-      console.error('PMHQ WebSocket 连接错误', '正在重连...')
+      console.error('PMHQ WebSocket 连接错误，可能 QQ 未启动', '正在等待 QQ 启动进行重连...')
       reconnect()
     }
 
@@ -166,7 +183,7 @@ export class PMHQ {
     }
 
     this.ws.onopen = () => {
-      selfInfo.online = true
+      // selfInfo.online = true
       console.info('PMHQ WebSocket 连接成功')
     }
   }
@@ -198,7 +215,18 @@ export class PMHQ {
     })
   }
 
-  public async wsSend<R extends PMHQRes>(data: PMHQReq, timeout = 10000): Promise<R> {
+  public async tellPort(webuiPort: number){
+    const payload: PMHQReqTellPort = {
+      type: 'tell_port',
+      data: {
+        webui_port: webuiPort,
+      },
+    }
+    const result = ((await this.wsSend(payload, 5000)) as PMHQResTellPort).data?.success
+    return result
+  }
+
+  public async wsSend<R extends PMHQRes>(data: PMHQReq, timeout = 15000): Promise<R> {
     await this.waitConnected()
     let echo = data.data?.echo
     if (!data.data?.echo) {
@@ -324,12 +352,13 @@ export class PMHQ {
   async getRKey() {
     const hexStr = '08e7a00210ca01221c0a130a05080110ca011206a80602b006011a02080122050a030a1400'
     const data = Buffer.from(hexStr, 'hex')
-    const resp = await this.wsSendPB('OidbSvcTrpcTcp.0xed3_1', data)
+    const resp = await this.wsSendPB('OidbSvcTrpcTcp.0x9067_202', data)
     const rkeyBody = Oidb.Base.decode(Buffer.from(resp.pb, 'hex')).body
     const rkeyItems = Oidb.GetRKeyResponseBody.decode(rkeyBody).result!.rkeyItems!
     return {
       privateRKey: rkeyItems[0].rkey!,
       groupRKey: rkeyItems[1].rkey!,
+      expiredTime: rkeyItems[0].createTime! + rkeyItems[0].ttlSec!
     }
   }
 
@@ -599,6 +628,21 @@ export class PMHQ {
     const { download } = file.body!.result!.extra!
     const { fileName } = file.body!.metadata!
     return `https://${download?.downloadDns}/ftn_handler/${Buffer.from(download!.downloadUrl!).toString('hex')}/?fname=${encodeURIComponent(fileName!)}`
+  }
+
+  async groupClockIn(groupCode: string) {
+    const body = Oidb.GroupClockIn.encode({
+      body: {
+        uin: selfInfo.uin,
+        groupCode
+      }
+    }).finish()
+    const data = Oidb.Base.encode({
+      command: 0xeb7,
+      subCommand: 1,
+      body,
+    }).finish()
+    await this.httpSendPB('OidbSvcTrpcTcp.0xeb7_1', data)
   }
 }
 

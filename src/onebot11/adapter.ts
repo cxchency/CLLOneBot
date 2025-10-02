@@ -12,7 +12,7 @@ import {
 import { OB11GroupRequestEvent } from './event/request/OB11GroupRequest'
 import { OB11FriendRequestEvent } from './event/request/OB11FriendRequest'
 import { OB11GroupDecreaseEvent } from './event/notice/OB11GroupDecreaseEvent'
-import { llonebotError, selfInfo } from '../common/globalVars'
+import { selfInfo } from '../common/globalVars'
 import { Config as LLOBConfig, OB11Config } from '../common/types'
 import { OB11WebSocket, OB11WebSocketReverseManager } from './connect/ws'
 import { OB11Http, OB11HttpPost } from './connect/http'
@@ -299,6 +299,7 @@ class OneBot11Adapter extends Service {
       }
       // HTTP 端口变化，重启服务
       if ((config.ob11.httpPort !== old.httpPort || config.onlyLocalhost !== old.onlyLocalhost) && config.ob11.enableHttp) {
+        this.ctx.logger.info('HTTP 端口变化，重启 HTTP 服务')
         await this.ob11Http.stop()
         this.ob11Http.start()
       }
@@ -315,7 +316,6 @@ class OneBot11Adapter extends Service {
       if ((config.ob11.wsPort !== old.wsPort || config.onlyLocalhost !== old.onlyLocalhost) && config.ob11.enableWs) {
         await this.ob11WebSocket.stop()
         this.ob11WebSocket.start()
-        llonebotError.wsServerError = ''
       }
       // 判断是否启用或关闭反向ws
       if (config.ob11.enableWsReverse !== old.enableWsReverse || config.ob11.enable !== old.enable) {

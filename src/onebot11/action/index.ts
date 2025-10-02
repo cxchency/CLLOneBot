@@ -105,6 +105,8 @@ import { BatchDeleteGroupMember } from '@/onebot11/action/llonebot/BatchDeleteGr
 import { GetAiCharacters } from './llonebot/GetAiCharacters'
 import { SendGroupAiRecord } from './llonebot/SendGroupAiRecord'
 import { GetPrivateFileUrl } from './llonebot/GetPrivateFileUrl'
+import { GetDoubtFriendsAddRequest } from './llonebot/GetDoubtFriendsAddRequest'
+import { SetDoubtFriendsAddRequest } from './llonebot/SetDoubtFriendsAddRequest'
 
 export function initActionMap(adapter: Adapter) {
   const actionHandlers = [
@@ -147,6 +149,8 @@ export function initActionMap(adapter: Adapter) {
     new GetAiCharacters(adapter),
     new SendGroupAiRecord(adapter),
     new GetPrivateFileUrl(adapter),
+    new GetDoubtFriendsAddRequest(adapter),
+    new SetDoubtFriendsAddRequest(adapter),
     // onebot11
     new SendLike(adapter),
     new GetMsg(adapter),

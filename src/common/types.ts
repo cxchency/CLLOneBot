@@ -29,7 +29,6 @@ export interface SatoriConfig {
 export interface WebUIConfig {
   enable: boolean
   port: number
-  token?: string
 }
 
 export interface Config {
@@ -55,12 +54,6 @@ export interface CheckVersion {
   version: string
 }
 
-export interface LLOneBotError {
-  httpServerError?: string
-  wsServerError?: string
-  ffmpegError?: string
-  otherError?: string
-}
 
 export interface FileCache {
   fileName: string

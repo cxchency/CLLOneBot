@@ -22,14 +22,12 @@ import {
   Sex,
   SimpleInfo,
   TipGroupElementType,
-  User,
 } from '../ntqqapi/types'
 import { EventType } from './event/OB11BaseEvent'
 import { encodeCQCode } from './cqcode'
 import { OB11GroupIncreaseEvent } from './event/notice/OB11GroupIncreaseEvent'
 import { OB11GroupUploadNoticeEvent } from './event/notice/OB11GroupUploadNoticeEvent'
 import { OB11GroupNoticeEvent } from './event/notice/OB11GroupNoticeEvent'
-import { calcQQLevel, filterNullable } from '../common/utils/misc'
 import { OB11GroupTitleEvent } from './event/notice/OB11GroupTitleEvent'
 import { OB11GroupDecreaseEvent } from './event/notice/OB11GroupDecreaseEvent'
 import { OB11FriendAddNoticeEvent } from './event/notice/OB11FriendAddNoticeEvent'
@@ -40,7 +38,7 @@ import { OB11BaseNoticeEvent } from './event/notice/OB11BaseNoticeEvent'
 import { GroupBanEvent } from './event/notice/OB11GroupBanEvent'
 import { GroupMsgEmojiLikeEvent } from './event/notice/OB11MsgEmojiLikeEvent'
 import { GroupEssenceEvent } from './event/notice/OB11GroupEssenceEvent'
-import { Dict, omit, pick } from 'cosmokit'
+import { Dict } from 'cosmokit'
 import { Context } from 'cordis'
 import { selfInfo } from '@/common/globalVars'
 import { pathToFileURL } from 'node:url'
@@ -107,13 +105,13 @@ export namespace OB11Entities {
     }
     else if (msg.chatType === ChatType.C2C) {
       resMsg.sub_type = 'friend'
-      resMsg.sender.nickname = (await ctx.ntUserApi.getUserSimpleInfo(msg.senderUid)).coreInfo.nick
+      resMsg.sender.nickname = (await ctx.ntUserApi.getCoreAndBaseInfo([msg.senderUid])).get(msg.senderUid)!.coreInfo.nick
       resMsg.sender.is_robot = false
     }
     else if (msg.chatType === ChatType.TempC2CFromGroup) {
       resMsg.sub_type = 'group'
       resMsg.temp_source = 0 //群聊
-      resMsg.sender.nickname = (await ctx.ntUserApi.getUserSimpleInfo(msg.senderUid)).coreInfo.nick
+      resMsg.sender.nickname = (await ctx.ntUserApi.getCoreAndBaseInfo([msg.senderUid])).get(msg.senderUid)!.coreInfo.nick
       resMsg.sender.is_robot = false
       const ret = await ctx.ntMsgApi.getTempChatInfo(ChatType.TempC2CFromGroup, msg.senderUid)
       if (ret?.result === 0) {
@@ -171,7 +169,7 @@ export namespace OB11Entities {
           const record = msg.records.find(msgRecord => msgRecord.msgId === replyElement.sourceMsgIdInRecords)
           const senderUid = replyElement.senderUidStr || record?.senderUid
           if (!record || !replyMsgTime || !senderUid) {
-            ctx.logger.error('找不到回复消息')
+            ctx.logger.error('找不到回复消息', replyElement)
             continue
           }
           const { msgList } = await ctx.ntMsgApi.getMsgsBySeqAndCount(peer, replayMsgSeq, 1, true, true)
@@ -187,17 +185,11 @@ export namespace OB11Entities {
             ctx.logger.error('获取不到引用的消息', replyElement)
             continue
           }
-          // 284840486: 合并消息内侧 消息具体定位不到
-          if (!replyMsg && msg.peerUin !== '284840486') {
-            ctx.logger.error('获取不到引用的消息', replyElement)
-            ctx.logger.warn('queryMsgs', msgList.map(e => pick(e, ['msgSeq', 'msgRandom'])), record.msgRandom)
-            continue
-          }
 
           messageSegment = {
             type: OB11MessageDataType.Reply,
             data: {
-              id: ctx.store.createMsgShortId(peer, replyMsg ? replyMsg.msgId : record.msgId).toString()
+              id: ctx.store.createMsgShortId(peer, replyMsg.msgId).toString()
             }
           }
         } catch (e) {
@@ -652,34 +644,30 @@ export namespace OB11Entities {
     }
   }
 
-  export function friend(friend: User): OB11User {
+  export function friend(raw: SimpleInfo): OB11User {
     return {
-      user_id: parseInt(friend.uin),
-      nickname: friend.nick,
-      remark: friend.remark,
-      sex: sex(friend.sex!),
-      level: (friend.qqLevel && calcQQLevel(friend.qqLevel)) || 0,
-    }
-  }
-
-  export function friends(friends: User[]): OB11User[] {
-    return friends.map(friend)
-  }
-
-  export function friendV2(raw: SimpleInfo): OB11User {
-    return {
-      ...omit(raw.baseInfo, ['richBuffer', 'phoneNum']),
-      ...omit(raw.coreInfo, ['nick']),
       user_id: parseInt(raw.coreInfo.uin),
       nickname: raw.coreInfo.nick,
       remark: raw.coreInfo.remark || raw.coreInfo.nick,
       sex: sex(raw.baseInfo.sex),
-      level: 0
+      birthday_year: raw.baseInfo.birthday_year,
+      birthday_month: raw.baseInfo.birthday_month,
+      birthday_day: raw.baseInfo.birthday_day,
+      age: raw.baseInfo.age,
+      qid: raw.baseInfo.qid,
+      long_nick: raw.baseInfo.longNick,
+      level: 0,
+      // 以下字段将在2025年10月23日后彻底删除
+      longNick: raw.baseInfo.longNick,
+      eMail: raw.baseInfo.eMail,
+      uid: raw.uid || '',
+      categoryId: raw.baseInfo.categoryId,
+      richTime: raw.baseInfo.richTime,
     }
   }
 
-  export function friendsV2(raw: SimpleInfo[]): OB11User[] {
-    return filterNullable(raw).map(friendV2)
+  export function friends(raw: SimpleInfo[]): OB11User[] {
+    return raw.map(friend)
   }
 
   export function groupMemberRole(role: number): OB11GroupMemberRole {

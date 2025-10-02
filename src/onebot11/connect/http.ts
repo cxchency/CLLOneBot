@@ -4,7 +4,7 @@ import crypto from 'node:crypto'
 import express, { Express, Request, Response, NextFunction } from 'express'
 import { BaseAction } from '../action/BaseAction'
 import { Context } from 'cordis'
-import { llonebotError, selfInfo } from '@/common/globalVars'
+import { selfInfo } from '@/common/globalVars'
 import { OB11Response } from '../action/OB11Response'
 import { OB11BaseEvent } from '../event/OB11BaseEvent'
 import { handleQuickOperation, QuickOperationEvent } from '../helper/quickOperation'
@@ -45,10 +45,9 @@ class OB11Http {
       return
     try {
       this.expressAPP.get('/', (req: Request, res: Response) => {
-        res.send(`LLOneBot server 已启动`)
+        res.send(`LLTwoBot server 已启动`)
       })
       const host = this.config.listenLocalhost ? '127.0.0.1' : ''
-      llonebotError.httpServerError = ''
       this.expressAPP.get('/_events', (req: Request, res: Response) => {
         res.setHeader('Content-Type', 'text/event-stream; charset=utf-8')
         res.setHeader('Cache-Control', 'no-cache')
@@ -75,7 +74,7 @@ class OB11Http {
       this.ctx.logger.info(`OneBot V11 HTTP SSE started ${host}:${this.config.port}/_events`)
       try {
         this.server = this.expressAPP.listen(this.config.port, host, (err) => {
-          if (err){
+          if (err) {
             this.ctx.logger.error('OneBot V11 HTTP server start error:', err)
           }
           this.ctx.logger.info(`OneBot V11 HTTP server started ${host}:${this.config.port}`)
@@ -85,12 +84,11 @@ class OB11Http {
           this.sockets.add(socket)
           socket.on('close', () => this.sockets.delete(socket))
         })
-      }catch (e) {
+      } catch (e) {
         this.ctx.logger.error(`OneBot V11 HTTP server error ${host}:${this.config.port}`, e)
       }
     } catch (e) {
       this.ctx.logger.error('OneBot V11 HTTP服务启动失败', e)
-      llonebotError.httpServerError = 'HTTP服务启动失败, ' + e
     }
   }
 
@@ -106,6 +104,7 @@ class OB11Http {
         this.server.close((err) => {
           if (err) {
             this.ctx.logger.error(`OneBot V11 HTTP Server closing ${err}`)
+            this.server = undefined
             return resolve(false)
           }
           this.ctx.logger.info('OneBot V11 HTTP Server closed')
@@ -177,11 +176,12 @@ class OB11Http {
       payload = { ...req.query, ...req.body }
     }
     this.ctx.logger.info('收到 HTTP 请求', req.url, payload)
-    const action = this.config.actionMap.get(req.path.replaceAll('/', ''))
+    const actionName = req.path.replaceAll('/', '')
+    const action = this.config.actionMap.get(actionName)
     if (action) {
       res.json(await action.handle(payload))
     } else {
-      res.status(404).json(OB11Response.error('API 不存在', 404))
+      res.status(404).json(OB11Response.error(`${actionName} API 不存在`, 404))
     }
   }
 }

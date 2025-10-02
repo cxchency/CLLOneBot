@@ -7,10 +7,20 @@ export interface OB11User {
   nickname: string
   remark?: string
   sex?: OB11UserSex
-  level?: number
+  birthday_year?: number
+  birthday_month?: number
+  birthday_day?: number
   age?: number
-  qid?: string
-  login_days?: number
+  // 以下是 OB11 非标准字段
+  qid: string,
+  long_nick: string
+  level: number  // 目前拿不到，一直是 0
+  // 以下字段将在2025年10月23日后彻底删除
+  longNick: string  // 个性签名
+  eMail: string
+  uid: string
+  categoryId: number
+  richTime: number // 暂时未知其含义
 }
 
 export enum OB11UserSex {
@@ -165,25 +175,25 @@ export interface OB11MessageKeyboard {
   type: OB11MessageDataType.Keyboard
   data: {
     rows: {
-    buttons: {
-      id: string;
-      render_data: {
-        label: string;
-        visited_label: string;
-        style: number;
-      };
-      action: {
-        type: number;
-        permission: {
-          type: number;
-          specify_role_ids: string[];
-          specify_user_ids: string[];
+      buttons: {
+        id: string;
+        render_data: {
+          label: string;
+          visited_label: string;
+          style: number;
         };
-        unsupport_tips: string;
-        data: string;
-        reply: boolean;
-        enter: boolean;
-      };
+        action: {
+          type: number;
+          permission: {
+            type: number;
+            specify_role_ids: string[];
+            specify_user_ids: string[];
+          };
+          unsupport_tips: string;
+          data: string;
+          reply: boolean;
+          enter: boolean;
+        };
       }[];
     }[];
   }

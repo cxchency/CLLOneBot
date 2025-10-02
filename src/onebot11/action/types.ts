@@ -53,6 +53,8 @@ export enum ActionName {
   GetAiCharacters = 'get_ai_characters',
   SendGroupAiRecord = 'send_group_ai_record',
   GetPrivateFileUrl = 'get_private_file_url',
+  GetDoubtFriendsAddRequest = 'get_doubt_friends_add_request',
+  SetDoubtFriendsAddRequest = 'set_doubt_friends_add_request',
   // onebot 11
   SendLike = 'send_like',
   GetLoginInfo = 'get_login_info',
