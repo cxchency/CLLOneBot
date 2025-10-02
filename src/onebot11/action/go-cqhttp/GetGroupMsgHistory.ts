@@ -72,17 +72,17 @@ export class GetGroupMsgHistory extends BaseAction<Payload, Response> {
 
     while (count > 0) {
       const res = await this.getMessage(peer, count, payload.reverseOrder, seq)
-      if (!res || res.length == 0) break
+      if (!res || res.list.length == 0) break
       
       // 根据 reverseOrder 决定下一次迭代的 seq 和消息添加方式
       if (payload.reverseOrder) {
         // 倒序：获取更新的消息，seq 向后迭代
-        seq = res[res.length - 1].message_seq + 1
-        messages.push(...res)
+        seq = res.seq + 1
+        messages.push(...res.list)
       } else {
         // 正序：获取更早的消息，seq 向前迭代
-        seq = res[0].message_seq - 1
-        messages.unshift(...res)
+        seq = res.seq - 1
+        messages.unshift(...res.list)
       }
       
       count -= res.list.length
