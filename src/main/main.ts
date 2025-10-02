@@ -68,10 +68,7 @@ async function onLoad() {
   ctx.plugin(NTQQUserApi)
   ctx.plugin(NTQQWebApi)
   ctx.plugin(NTQQSystemApi)
-<<<<<<< HEAD
   ctx.plugin(GroupCacheService)
-=======
->>>>>>> upstream/main
   ctx.plugin(Log, {
     enable: config.log!,
     filename: logFileName,
