@@ -55,7 +55,7 @@ declare module 'cordis' {
 }
 
 class Core extends Service {
-  static inject = ['ntMsgApi', 'ntFriendApi', 'ntGroupApi', 'store', 'ntUserApi', 'ntFileApi']
+  static inject = ['ntMsgApi', 'ntFriendApi', 'ntGroupApi', 'store', 'ntUserApi', 'ntFileApi', 'groupCache']
   public startupTime = 0
   public messageReceivedCount = 0
   public messageSentCount = 0
