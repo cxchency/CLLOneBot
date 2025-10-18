@@ -1,5 +1,6 @@
 import { Context, Service } from 'cordis'
 import { GroupSimpleInfo } from '../types'
+import { GroupInfo } from '../listeners'
 
 declare module 'cordis' {
   interface Context {
@@ -57,7 +58,7 @@ export class GroupCacheService extends Service {
    * 批量更新群组缓存
    * @param groups 群组列表
    */
-  updateGroups(groups: GroupSimpleInfo[]): void {
+  updateGroups(groups: GroupSimpleInfo[] | GroupInfo[]): void {
     const now = Date.now()
     for (const group of groups) {
       if (group.groupCode && group.groupName) {
