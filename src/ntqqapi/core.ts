@@ -28,6 +28,7 @@ import {
 import { logSummaryMessage } from '@/ntqqapi/log'
 import { setFFMpegPath } from '@/common/utils/ffmpeg'
 import { OnQRCodeLoginSucceedParameter } from '@/ntqqapi/listeners/NodeIKernelLoginListener'
+import { GroupInfo, LocalExitGroupReason } from '@/ntqqapi/listeners'
 
 declare module 'cordis' {
   interface Context {
@@ -37,10 +38,12 @@ declare module 'cordis' {
   interface Events {
     'nt/login-qrcode': (input: OnQRCodeLoginSucceedParameter) => void
     'nt/message-created': (input: RawMessage) => void
+    'nt/offline-message-created': (input: RawMessage) => void
     'nt/message-deleted': (input: RawMessage) => void
     'nt/message-sent': (input: RawMessage) => void
     'nt/group-notify': (input: { notify: GroupNotify, doubt: boolean }) => void
-    'nt/group-dismiss': (input: GroupSimpleInfo) => void
+    'nt/group-dismiss': (input: GroupInfo) => void
+    'nt/group-quit': (input: GroupInfo) => void // 主动退群
     'nt/friend-request': (input: FriendRequest) => void
     'nt/group-member-info-updated': (input: { groupCode: string, members: GroupMember[] }) => void
     'nt/system-message-created': (input: Uint8Array) => void
@@ -67,7 +70,7 @@ class Core extends Service {
   public start() {
     this.startupTime = Math.trunc(Date.now() / 1000)
     this.registerListener()
-    this.ctx.logger.info(`LLTwoBot/${version}`)
+    setFFMpegPath('')
     this.ctx.on('llob/config-updated', input => {
       Object.assign(this.config, input)
       setFFMpegPath(input.ffmpeg || '')
@@ -127,8 +130,8 @@ class Core extends Service {
   private handleMessage(msgList: RawMessage[]) {
     for (const message of msgList) {
       const msgTime = parseInt(message.msgTime)
-      // 过滤启动之前的消息
-      if (!this.config.receiveOfflineMsg && msgTime < this.startupTime) {
+      if (msgTime < this.startupTime) {
+        this.ctx.parallel('nt/offline-message-created', message)
         continue
       }
       if (message.senderUin && message.senderUin !== '0') {
@@ -331,20 +334,22 @@ class Core extends Service {
       this.ctx.parallel('nt/flash-file-uploading', payload)
     })
 
-    registerReceiveHook<[type: number, groups: GroupSimpleInfo[]]>(ReceiveCmdS.GROUPS, async (data) => {
-      const [type, groups] = data
-      if (type !== 3) {
-        return
-      }
-      
+    const group_dismiss_codes: string[] = []  // 不知是否是 QQ 的 bug，退群的时候会上报一个以前解散的群，这里用于避免重复上报
+    registerReceiveHook(ReceiveCmdS.GROUP_DETAIL_INFO_UPDATE, async (data: GroupInfo) => {
       // 更新群组名称缓存
-      this.ctx.groupCache.updateGroups(groups)
-      
-      for (const group of groups) {
-        if (!group.groupOwnerId.memberUid) {
-          // 群被解散
-          this.ctx.parallel('nt/group-dismiss', group)
+      this.ctx.groupCache.updateGroups([data])
+      if (data.localExitGroupReason === LocalExitGroupReason.DISMISS
+        && !group_dismiss_codes.includes(data.groupCode)
+        && data.cmdUinJoinTime > this.startupTime
+      ) {
+        group_dismiss_codes.push(data.groupCode)
+        if (group_dismiss_codes.length > 1000) {
+          group_dismiss_codes.shift()
         }
+        this.ctx.parallel('nt/group-dismiss', data)
+      }
+      else if (data.localExitGroupReason === LocalExitGroupReason.SELF_QUIT){
+        this.ctx.parallel('nt/group-quit', data)
       }
     })
   }

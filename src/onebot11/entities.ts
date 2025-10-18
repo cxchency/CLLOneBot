@@ -42,8 +42,8 @@ import { Dict } from 'cosmokit'
 import { Context } from 'cordis'
 import { selfInfo } from '@/common/globalVars'
 import { pathToFileURL } from 'node:url'
-import OneBot11Adapter from './adapter'
 import { OB11GroupRequestEvent } from '@/onebot11/event/request/OB11GroupRequest'
+import { ParseMessageConfig } from './types'
 
 export namespace OB11Entities {
   export async function message(
@@ -51,14 +51,15 @@ export namespace OB11Entities {
     msg: RawMessage,
     rootMsgID?: string,
     peer?: Peer,
+    config?: ParseMessageConfig
   ): Promise<OB11Message | undefined> {
     if (!msg.senderUin || msg.senderUin === '0' || msg.msgType === 1) return //跳过空消息
-    const {
-      debug,
-      messagePostFormat,
-    } = ctx.config as OneBot11Adapter.Config
     const selfUin = selfInfo.uin
-    const msgShortId = ctx.store.createMsgShortId({ chatType: msg.chatType, peerUid: msg.peerUid }, msg.msgId)
+    const msgShortId = ctx.store.createMsgShortId({
+      chatType: msg.chatType,
+      peerUid: msg.peerUid,
+      guildId: ''
+    }, msg.msgId)
     const resMsg: OB11Message = {
       self_id: Number(selfUin),
       user_id: Number(msg.senderUin),
@@ -74,14 +75,14 @@ export namespace OB11Entities {
       raw_message: '',
       font: 14,
       sub_type: 'friend',
-      message: messagePostFormat === 'string' ? '' : [],
-      message_format: messagePostFormat === 'string' ? 'string' : 'array',
+      message: [],
+      message_format: 'array',
       post_type: selfUin === msg.senderUin ? EventType.MESSAGE_SENT : EventType.MESSAGE,
       getSummaryEventName(): string {
         return this.post_type + '.' + this.message_type
       }
     }
-    if (debug) {
+    if (!config || config.debug) {
       resMsg.raw = msg
     }
     if (msg.chatType === ChatType.Group) {
@@ -105,14 +106,22 @@ export namespace OB11Entities {
     }
     else if (msg.chatType === ChatType.C2C) {
       resMsg.sub_type = 'friend'
-      resMsg.sender.nickname = (await ctx.ntUserApi.getCoreAndBaseInfo([msg.senderUid])).get(msg.senderUid)!.coreInfo.nick
+      if (msg.senderUin === '1094950020') {
+        resMsg.sender.nickname = 'QQ用户'
+      } else {
+        resMsg.sender.nickname = (await ctx.ntUserApi.getCoreAndBaseInfo([msg.senderUid])).get(msg.senderUid)!.coreInfo.nick
       resMsg.sender.is_robot = false
+      }
     }
     else if (msg.chatType === ChatType.TempC2CFromGroup) {
       resMsg.sub_type = 'group'
       resMsg.temp_source = 0 //群聊
-      resMsg.sender.nickname = (await ctx.ntUserApi.getCoreAndBaseInfo([msg.senderUid])).get(msg.senderUid)!.coreInfo.nick
+      if (msg.senderUin === '1094950020') {
+        resMsg.sender.nickname = 'QQ用户'
+      } else {
+        resMsg.sender.nickname = (await ctx.ntUserApi.getCoreAndBaseInfo([msg.senderUid])).get(msg.senderUid)!.coreInfo.nick
       resMsg.sender.is_robot = false
+      }
       const ret = await ctx.ntMsgApi.getTempChatInfo(ChatType.TempC2CFromGroup, msg.senderUid)
       if (ret?.result === 0) {
         resMsg.sender.group_id = Number(ret.tmpChatInfo?.groupCode)
@@ -179,7 +188,17 @@ export namespace OB11Entities {
             replyMsg = msgList.find((msg: RawMessage) => msg.msgRandom === record.msgRandom)
           } else {
             ctx.logger.info('msgRandom is missing', replyElement, record)
-            replyMsg = msgList[0]
+            if (msgList.length > 0) {
+              replyMsg = msgList[0]
+            } else {
+              if (record.senderUin && record.senderUin !== '0') {
+                peer.chatType = record.chatType
+                peer.peerUid = record.peerUid
+                ctx.store.addMsgCache(record)
+              }
+              ctx.logger.info('msgList is empty, use record')
+              replyMsg = record
+            }
           }
           if (!replyMsg) {
             ctx.logger.error('获取不到引用的消息', replyElement)
@@ -227,6 +246,7 @@ export namespace OB11Entities {
           {
             chatType: msg.chatType,
             peerUid: peer?.peerUid ?? msg.peerUid,
+            guildId: ''
           },
           rootMsgID ?? msg.msgId,
           element.elementId,
@@ -460,14 +480,15 @@ export namespace OB11Entities {
       }
       if (messageSegment) {
         const cqCode = encodeCQCode(messageSegment)
-        if (messagePostFormat === 'array') {
-          (resMsg.message as OB11MessageData[]).push(messageSegment)
+        if (typeof resMsg.message === 'object') {
+          resMsg.message.push(messageSegment)
         }
         resMsg.raw_message += cqCode
       }
     }
-    if (messagePostFormat === 'string') {
+    if (config?.messageFormat === 'string') {
       resMsg.message = resMsg.raw_message
+      resMsg.message_format = 'string'
     }
     return resMsg
   }
@@ -609,8 +630,8 @@ export namespace OB11Entities {
           if (xmlElement.templId === '10382') {
             ctx.logger.info('收到表情回应我的消息', xmlElement.templParam)
             return await GroupMsgEmojiLikeEvent.parse(ctx, xmlElement, msg.peerUid, groupName)
-          } else if (xmlElement.templId == '10179') {
-            ctx.logger.info('收到新人被邀请进群消息 templId: 10179', xmlElement)
+          } else if (xmlElement.templId === '10179' || xmlElement.templId === '10180') {
+            ctx.logger.info('收到新人被邀请进群消息', xmlElement)
             const invitor = xmlElement.templParam.get('invitor')
             const invitee = xmlElement.templParam.get('invitee')
             if (invitor && invitee) {

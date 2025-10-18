@@ -5,6 +5,7 @@ import { ChatType, Peer } from '@/ntqqapi/types'
 import { OB11Entities } from '../../entities'
 import { RawMessage } from '@/ntqqapi/types'
 import { filterNullable, parseBool } from '@/common/utils/misc'
+import { ParseMessageConfig } from '@/onebot11/types'
 
 interface Payload {
   group_id: number | string
@@ -26,7 +27,7 @@ export class GetGroupMsgHistory extends BaseAction<Payload, Response> {
     reverseOrder: Schema.union([Boolean, Schema.transform(String, parseBool)]).default(false)
   })
 
-  private async getMessage(peer: Peer, count: number, reverseOrder: boolean, seq?: number | string) {
+  private async getMessage(config: ParseMessageConfig, peer: Peer, count: number, reverseOrder: boolean, seq?: number | string) {
     let msgList: RawMessage[]
     if (!seq || +seq === 0) {
       msgList = (await this.ctx.ntMsgApi.getAioFirstViewLatestMsgs(peer, count)).msgList
@@ -44,15 +45,16 @@ export class GetGroupMsgHistory extends BaseAction<Payload, Response> {
           rawMsg = msg
         }
       }
-      return OB11Entities.message(this.ctx, rawMsg)
+      return OB11Entities.message(this.ctx, rawMsg, undefined, undefined, config)
     }))
     return { list: filterNullable(ob11MsgList), seq: +msgList[0].msgSeq }
   }
 
-  protected async _handle(payload: Payload): Promise<Response> {
-    const peer = {
+  protected async _handle(payload: Payload, config: ParseMessageConfig): Promise<Response> {
+    const peer: Peer = {
       chatType: ChatType.Group,
-      peerUid: payload.group_id.toString()
+      peerUid: payload.group_id.toString(),
+      guildId: ''
     }
 
     const messages: OB11Message[] = []
@@ -71,7 +73,7 @@ export class GetGroupMsgHistory extends BaseAction<Payload, Response> {
     }
 
     while (count > 0) {
-      const res = await this.getMessage(peer, count, payload.reverseOrder, seq)
+      const res = await this.getMessage(config, peer, count, payload.reverseOrder, seq)
       if (!res || res.list.length == 0) break
       
       // 根据 reverseOrder 决定下一次迭代的 seq 和消息添加方式

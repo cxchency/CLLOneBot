@@ -432,3 +432,8 @@ export interface OB11GroupFileFolder {
   creator_name: string
   total_file_count: number
 }
+
+export interface ParseMessageConfig {
+  messageFormat: 'array' | 'string'
+  debug: boolean
+}

@@ -85,8 +85,6 @@ async function onLoad() {
     ctx.plugin(OneBot11Adapter, {
       ...config.ob11,
       onlyLocalhost: config.onlyLocalhost,
-      heartInterval: config.heartInterval,
-      debug: config.debug!,
       musicSignUrl: config.musicSignUrl,
       enableLocalFile2Url: config.enableLocalFile2Url!,
       ffmpeg: config.ffmpeg,
@@ -123,6 +121,7 @@ async function onLoad() {
       ctx.parallel('llob/config-updated', c)
     })
     loadPluginAfterLogin()
+    ctx.webuiServer.setConfig(config)
   }
   else {
     config = defaultConfig
@@ -137,23 +136,17 @@ async function onLoad() {
       const getSelfInfo = async () => {
         const uin = await ctx.ntUserApi.getUinByUid(data[2])
         selfInfo.uin = uin
+        const configUtil = getConfigUtil(true)
+        config = configUtil.getConfig()
+        ctx.parallel('llob/config-updated', config)
+        configUtil.listenChange(c => {
+          ctx.parallel('llob/config-updated', c)
+        })
         loadPluginAfterLogin()
         // this.ctx.database.config.path = path.join(dbDir, `${uin}.db`)
         ctx.ntUserApi.getSelfNick().then(nick => {
           ctx.logger.info(`获取登录号${uin}昵称成功`, nick)
-          const oldConfig = getConfigUtil().getConfig()
-          Object.assign(selfInfo, {
-            uin,
-            nick: nick,
-            online: true,
-          })
-          const configUtil = getConfigUtil(true)
-          const config = configUtil.getConfig()
-          configUtil.setConfig(config)
-          ctx.parallel('llob/config-updated', config)
-          configUtil.listenChange(c => {
-            ctx.parallel('llob/config-updated', c)
-          })
+          selfInfo.nick = nick
         }).catch(e => {
           ctx.logger.warn('获取登录号昵称失败', e)
         })
