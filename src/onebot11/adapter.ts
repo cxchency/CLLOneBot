@@ -39,6 +39,7 @@ import {
 } from '@/onebot11/event/notice/OB11PokeEvent'
 import { OB11GroupDismissEvent } from '@/onebot11/event/notice/OB11GroupDismissEvent'
 import { BaseAction } from './action/BaseAction'
+import { cloneObj } from '@/common/utils'
 
 declare module 'cordis' {
   interface Context {
@@ -96,7 +97,8 @@ class OneBot11Adapter extends Service {
 
   public dispatchMessageLike(event: OB11BaseEvent, self: boolean, offline: boolean) {
     for (const item of this.connect) {
-      item.emitMessageLikeEvent(event, self, offline)
+      // 这里不 copy 出来的话，更改了 msg.message 会影响下一个 connect
+      item.emitMessageLikeEvent(cloneObj(event) as OB11BaseEvent, self, offline)
     }
   }
 
@@ -360,7 +362,15 @@ class OneBot11Adapter extends Service {
           if (tip.memberUid === selfInfo.uid) return
           this.ctx.logger.info('有群成员被踢', tip)
           const memberUin = await this.ctx.ntUserApi.getUinByUid(tip.memberUid)
-          const adminUin = await this.ctx.ntUserApi.getUinByUid(tip.adminUid.match(/\x18([^\x18\x10]+)\x10/)![1])
+          let adminUin = '0'
+          let adminUid = tip.adminUid
+          if (adminUid) {
+            const adminUidMatch = tip.adminUid.match(/\x18([^\x18\x10]+)\x10/)
+            if (adminUidMatch) {
+              adminUid = adminUidMatch[1]
+            }
+            adminUin = await this.ctx.ntUserApi.getUinByUid(adminUid)
+          }
           const event = new OB11GroupDecreaseEvent(tip.groupCode, +memberUin, +adminUin, 'kick')
           this.dispatch(event)
         }

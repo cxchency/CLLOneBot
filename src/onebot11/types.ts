@@ -12,15 +12,8 @@ export interface OB11User {
   birthday_day?: number
   age?: number
   // 以下是 OB11 非标准字段
-  qid: string,
-  long_nick: string
-  level: number  // 目前拿不到，一直是 0
-  // 以下字段将在2025年10月23日后彻底删除
-  longNick: string  // 个性签名
-  eMail: string
-  uid: string
-  categoryId: number
-  richTime: number // 暂时未知其含义
+  qid?: string,
+  long_nick?: string
 }
 
 export enum OB11UserSex {
