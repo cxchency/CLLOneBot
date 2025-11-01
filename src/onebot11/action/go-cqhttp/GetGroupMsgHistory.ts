@@ -32,11 +32,12 @@ export class GetGroupMsgHistory extends BaseAction<Payload, Response> {
     if (!seq || +seq === 0) {
       msgList = (await this.ctx.ntMsgApi.getAioFirstViewLatestMsgs(peer, count)).msgList
     } else {
-      // queryOrder: false = 从新到旧, true = 从旧到新
       // reverseOrder: false = 获取更早的消息, true = 获取更新的消息
       msgList = (await this.ctx.ntMsgApi.getMsgsBySeqAndCount(peer, String(seq), count, !reverseOrder, true)).msgList
     }
     if (!msgList?.length) return
+    // 按 reverseOrder 排序，确保 msgSeq 为 number
+    msgList.sort((a, b) => reverseOrder ? Number(a.msgSeq) - Number(b.msgSeq) : Number(b.msgSeq) - Number(a.msgSeq))
     const ob11MsgList = await Promise.all(msgList.map(msg => {
       let rawMsg = msg
       if (rawMsg.recallTime !== '0') {
@@ -61,28 +62,20 @@ export class GetGroupMsgHistory extends BaseAction<Payload, Response> {
     let seq = payload.message_seq
     let count = +payload.count
 
-    // 如果指定了 seq，需要调整起始位置以排除 seq 本身
-    if (seq && +seq !== 0) {
-      if (payload.reverseOrder) {
-        // 倒序：获取更新的消息，从 seq + 1 开始
-        seq = +seq + 1
-      } else {
-        // 正序：获取更早的消息，从 seq - 1 开始
-        seq = +seq - 1
-      }
-    }
-
+    let lastSeq = undefined // 记录上一次的 seq
     while (count > 0) {
       const res = await this.getMessage(config, peer, count, payload.reverseOrder, seq)
       if (!res || res.list.length == 0) break
       
-      // 根据 reverseOrder 决定下一次迭代的 seq 和消息添加方式
+      // 检查是否陷入死循环（seq 没有前进）
       if (payload.reverseOrder) {
-        // 倒序：获取更新的消息，seq 向后迭代
+        if (lastSeq !== undefined && res.seq <= lastSeq) break
+        lastSeq = res.seq
         seq = res.seq + 1
         messages.push(...res.list)
       } else {
-        // 正序：获取更早的消息，seq 向前迭代
+        if (lastSeq !== undefined && res.seq >= lastSeq) break
+        lastSeq = res.seq
         seq = res.seq - 1
         messages.unshift(...res.list)
       }
