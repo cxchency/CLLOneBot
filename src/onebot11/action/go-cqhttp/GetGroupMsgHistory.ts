@@ -62,25 +62,27 @@ export class GetGroupMsgHistory extends BaseAction<Payload, Response> {
     let seq = payload.message_seq
     let count = +payload.count
 
-    let lastSeq = undefined // 记录上一次的 seq
+    const seenMsgIds = new Set<string>() // 记录已获取的消息ID，避免重复
     while (count > 0) {
       const res = await this.getMessage(config, peer, count, payload.reverseOrder, seq)
       if (!res || res.list.length == 0) break
-      
-      // 检查是否陷入死循环（seq 没有前进）
+      // 过滤已获取过的消息
+      const newList = res.list.filter(msg => {
+        // @ts-ignore
+        if (seenMsgIds.has(msg.message_id)) return false
+        // @ts-ignore
+        seenMsgIds.add(msg.message_id)
+        return true
+      })
+      if (newList.length === 0) break // 没有新消息可加，跳出
       if (payload.reverseOrder) {
-        if (lastSeq !== undefined && res.seq <= lastSeq) break
-        lastSeq = res.seq
         seq = res.seq + 1
-        messages.push(...res.list)
+        messages.push(...newList)
       } else {
-        if (lastSeq !== undefined && res.seq >= lastSeq) break
-        lastSeq = res.seq
         seq = res.seq - 1
-        messages.unshift(...res.list)
+        messages.unshift(...newList)
       }
-      
-      count -= res.list.length
+      count -= newList.length
     }
 
     return { messages }
