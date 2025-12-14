@@ -1,5 +1,5 @@
 V7.1.0
-更新时间 2025-12-13
+更新时间 2025-12-14
 
 * Milky 支持 HTTP SSE
 * Milky 支持 `group_name_change` 事件
@@ -13,6 +13,7 @@ V7.1.0
 * 修复 Milky 协议的设置了 token 后无法启动
 * 修复 Milky 的 `get_history_messages` API 调用时可能报错
 * 修复图片元数据较大时无法发送图片
+* 修复 OneBot API `get_friend_with_category`
 
 =================
 V7.0.1
