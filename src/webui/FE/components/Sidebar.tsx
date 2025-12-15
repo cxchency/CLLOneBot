@@ -7,6 +7,7 @@ import {
   Cpu,
   Sliders,
   Milk,
+  Terminal,
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -24,6 +25,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, accountInfo }
     { id: 'onebot', icon: Radio, label: 'OneBot 11' },
     { id: 'satori', icon: Cpu, label: 'Satori' },
     { id: 'milky', icon: Milk, label: 'Milky' },
+    { id: 'logs', icon: Terminal, label: '日志' },
     { id: 'other', icon: Sliders, label: '其他配置' },
     { id: 'about', icon: Info, label: '关于' },
   ]

@@ -6,6 +6,7 @@ import TokenDialog from './components/TokenDialog';
 import ChangePasswordDialog from './components/ChangePasswordDialog';
 import QQLogin from './components/QQLogin';
 import Dashboard from './components/Dashboard';
+import LogViewer from './components/LogViewer';
 import { ToastContainer, showToast } from './components/Toast';
 import AnimatedBackground from './components/AnimatedBackground';
 import { Config, ResConfig } from './types';
@@ -177,6 +178,8 @@ function App() {
 
           {/* Content */}
           {activeTab === 'dashboard' && <Dashboard />}
+
+          {activeTab === 'logs' && <LogViewer />}
 
           {activeTab === 'onebot' && (
             <OneBotConfigNew

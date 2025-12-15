@@ -1,4 +1,4 @@
-import express, { Application, Express, NextFunction, Request, Response } from 'express'
+import express, { Express, NextFunction, Request, Response } from 'express'
 import cors from 'cors'
 import path from 'path'
 import { fileURLToPath } from 'url'
@@ -13,7 +13,8 @@ import { getAvailablePort } from '@/common/utils/port'
 import { pmhq } from '@/ntqqapi/native/pmhq'
 import { ReqConfig, ResConfig } from './types'
 import { appendFileSync } from 'node:fs'
-import { sleep } from '@/common/utils'
+
+import { getLogCache, LogRecord } from '../../main/log'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -103,7 +104,6 @@ export class WebUIServer extends Service {
   }
 
   private initServer() {
-    this.app.use(express.static(feDistPath))
     this.app.use(express.json())
     this.app.use(cors())
     this.app.use('/api', (req: Request, res: Response, next: NextFunction) => {
@@ -331,6 +331,33 @@ export class WebUIServer extends Service {
         res.status(500).json({ success: false, message: '获取统计数据失败', error: e })
       }
     })
+    // SSE 日志流端点
+    this.app.get('/api/logs/stream', (req: Request, res: Response) => {
+      res.setHeader('Content-Type', 'text/event-stream')
+      res.setHeader('Cache-Control', 'no-cache')
+      res.setHeader('Connection', 'keep-alive')
+      res.flushHeaders()
+
+      // 发送连接确认事件
+      res.write(`event: connected\ndata: {}\n\n`)
+
+      // 先发送历史日志
+      for (const record of getLogCache()) {
+        res.write(`data: ${JSON.stringify(record)}\n\n`)
+      }
+
+      const dispose = this.ctx.on('llob/log', (record: LogRecord) => {
+        res.write(`data: ${JSON.stringify(record)}\n\n`)
+      })
+
+      req.on('close', () => {
+        dispose()
+      })
+    })
+
+    // 静态文件服务放在 API 路由之后
+    this.app.use(express.static(feDistPath))
+
     this.app.get('/', (req, res) => {
       res.sendFile(path.join(feDistPath, 'index.html'))
     })
