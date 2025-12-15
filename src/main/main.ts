@@ -148,7 +148,7 @@ async function onLoad() {
     }
   }, 1000)
 
-  ctx.logger.info(`LLTwoBot ${version}`)
+  ctx.logger.info(`LLBot ${version}`)
   // setFFMpegPath(config.ffmpeg || '')
   startHook()
   ctx.start().catch(e => {

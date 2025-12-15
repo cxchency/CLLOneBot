@@ -1,6 +1,6 @@
 # Product Overview
 
-LLTwoBot (Lucky Lillia Two Bot) is a QQ bot implementation that provides OneBot 11 and Satori protocol server capabilities for QQ messaging automation.
+LLBot (Lucky Lillia Bot) is a QQ bot implementation that provides OneBot 11 and Satori protocol server capabilities for QQ messaging automation.
 
 ## Core Purpose
 
