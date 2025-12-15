@@ -81,7 +81,7 @@ export class WebUIServer extends Service {
   private connections = new Set<Socket>()
   private currentPort?: number
   public port?: number = undefined
-  static inject = ['app', 'ntLoginApi', 'ntFriendApi', 'ntGroupApi']
+  static inject = ['ntLoginApi', 'ntFriendApi', 'ntGroupApi']
 
   constructor(ctx: Context, public config: WebUIServerConfig) {
     super(ctx, 'webuiServer', true)
@@ -279,7 +279,11 @@ export class WebUIServer extends Service {
     // 获取 Dashboard 统计数据
     this.app.get('/api/dashboard/stats', async (req, res) => {
       try {
-        const app = this.ctx.app
+        const app = this.ctx.get('app')
+        if (!app) {
+          res.status(503).json({ success: false, message: '服务尚未就绪，请等待登录完成' })
+          return
+        }
         const friends = await this.ctx.ntFriendApi.getBuddyList()
         const groups = await this.ctx.ntGroupApi.getGroups(false)
 
@@ -409,6 +413,7 @@ export class WebUIServer extends Service {
   }
 
   async start() {
+    console.log('webui start')
     if (!this.config?.enable) {
       return
     }
