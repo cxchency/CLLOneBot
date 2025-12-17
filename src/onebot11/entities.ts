@@ -36,14 +36,13 @@ import { OB11GroupRecallNoticeEvent } from './event/notice/OB11GroupRecallNotice
 import { OB11FriendPokeEvent, OB11GroupPokeEvent } from './event/notice/OB11PokeEvent'
 import { OB11BaseNoticeEvent } from './event/notice/OB11BaseNoticeEvent'
 import { GroupBanEvent } from './event/notice/OB11GroupBanEvent'
-import { GroupMsgEmojiLikeEvent } from './event/notice/OB11MsgEmojiLikeEvent'
-import { GroupEssenceEvent } from './event/notice/OB11GroupEssenceEvent'
 import { Dict } from 'cosmokit'
 import { Context } from 'cordis'
 import { selfInfo } from '@/common/globalVars'
 import { pathToFileURL } from 'node:url'
-import { OB11GroupRequestEvent } from '@/onebot11/event/request/OB11GroupRequest'
+import { OB11GroupRequestInviteBotEvent } from '@/onebot11/event/request/OB11GroupRequest'
 import { ParseMessageConfig } from './types'
+import { msgPBMap } from '@/ntqqapi/hook'
 
 export namespace OB11Entities {
   export async function message(
@@ -55,11 +54,7 @@ export namespace OB11Entities {
   ): Promise<OB11Message | undefined> {
     if (!msg.senderUin || msg.senderUin === '0' || msg.msgType === 1) return //跳过空消息
     const selfUin = selfInfo.uin
-    const msgShortId = ctx.store.createMsgShortId({
-      chatType: msg.chatType,
-      peerUid: msg.peerUid,
-      guildId: ''
-    }, msg.msgId)
+    const msgShortId = ctx.store.createMsgShortId(msg)
     const resMsg: OB11Message = {
       self_id: Number(selfUin),
       user_id: Number(msg.senderUin),
@@ -84,6 +79,12 @@ export namespace OB11Entities {
     }
     if (!config || config.debug) {
       resMsg.raw = msg
+      resMsg.raw_pb = ''
+      const uniqueId = `${msg.peerUin}_${msg.msgRandom}_${msg.msgSeq}`
+      const msgPB = msgPBMap.get(uniqueId)
+      if (msgPB) {
+        resMsg.raw_pb = msgPB
+      }
     }
     if (msg.chatType === ChatType.Group) {
       resMsg.sub_type = 'normal'
@@ -174,14 +175,17 @@ export namespace OB11Entities {
           guildId: ''
         }
         try {
-          const { replayMsgSeq, replyMsgTime } = replyElement
-          const record = msg.records.find(msgRecord => msgRecord.msgId === replyElement.sourceMsgIdInRecords)
+          const { replayMsgSeq: replyMsgSeq, replyMsgTime } = replyElement
+          let record = msg.records.find(msgRecord => msgRecord.msgId === replyElement.sourceMsgIdInRecords)
+          const { msgList } = await ctx.ntMsgApi.getMsgsBySeqAndCount(peer, replyMsgSeq, 1, true, true)
+          if (!record) {
+            record = msgList.find(msg => msg.msgSeq === replyMsgSeq && msg.msgTime === replyMsgTime)
+          }
           const senderUid = replyElement.senderUidStr || record?.senderUid
           if (!record || !replyMsgTime || !senderUid) {
             ctx.logger.error('找不到回复消息', replyElement)
             continue
           }
-          const { msgList } = await ctx.ntMsgApi.getMsgsBySeqAndCount(peer, replayMsgSeq, 1, true, true)
 
           let replyMsg: RawMessage | undefined
           if (record.msgRandom !== '0') {
@@ -208,7 +212,7 @@ export namespace OB11Entities {
           messageSegment = {
             type: OB11MessageDataType.Reply,
             data: {
-              id: ctx.store.createMsgShortId(peer, replyMsg.msgId).toString()
+              id: ctx.store.createMsgShortId(replyMsg).toString()
             }
           }
         } catch (e) {
@@ -305,7 +309,7 @@ export namespace OB11Entities {
           type: OB11MessageDataType.Record,
           data: {
             file: pttElement.fileName,
-            url: pathToFileURL(pttElement.filePath).href,
+            url: await ctx.ntFileApi.getPttUrl(pttElement.fileUuid, msg.chatType === ChatType.Group),
             path: pttElement.filePath,
             file_size: fileSize,
           }
@@ -539,18 +543,15 @@ export namespace OB11Entities {
           if (receiverUin !== selfInfo.uin || senderUin !== msg.senderUin) {
             return
           }
-          ctx.logger.info('收到邀请我加群消息')
+          ctx.logger.info('收到邀请我加群消息', JSON.stringify(data))
           const groupCode = params.get('groupcode')
           const seq = params.get('msgseq')
           const flag = `${groupCode}|${seq}|1|0`
-          return new OB11GroupRequestEvent(
+          return new OB11GroupRequestInviteBotEvent(
             Number(groupCode),
             Number(senderUin),
             flag,
             data.meta.news.desc,
-            'invite',
-            0,
-            undefined  // 私聊中的群邀请无法获取群名
           )
         }
       }
@@ -589,9 +590,6 @@ export namespace OB11Entities {
               json.items,
               groupName
             )
-          } else if (grayTipElement.jsonGrayTipElement?.busiId === JsonGrayTipBusId.GroupEssenceMsg && json.items[2]) {
-            ctx.logger.info('收到群精华消息', json)
-            return await GroupEssenceEvent.parse(ctx, new URL(json.items[2].jp), groupName)
           } else if (grayTipElement.jsonGrayTipElement?.busiId === JsonGrayTipBusId.GroupMemberTitleChanged) {
             ctx.logger.info('收到群成员新头衔消息', json)
             const memberUin = json.items[1].param[0]
@@ -605,10 +603,10 @@ export namespace OB11Entities {
           }
         } else if (grayTipElement.subElementType === GrayTipElementSubType.Group) {
           const groupElement = grayTipElement.groupElement!
-          if (groupElement.type === TipGroupElementType.Ban) {
+          if (groupElement.type === TipGroupElementType.ShutUp) {
             ctx.logger.info('收到群成员禁言提示', groupElement)
             return await GroupBanEvent.parse(ctx, groupElement, msg.peerUid, groupName)
-          } else if (groupElement.type === TipGroupElementType.Kicked) {
+          } else if (groupElement.type === TipGroupElementType.Quitted) {
             ctx.logger.info(`收到我被踢出或退群提示, 群${msg.peerUid}`, groupElement)
             const { adminUid } = groupElement
             return new OB11GroupDecreaseEvent(
@@ -618,7 +616,7 @@ export namespace OB11Entities {
               adminUid ? 'kick_me' : 'leave',
               groupName
             )
-          } else if (groupElement.type === TipGroupElementType.MemberIncrease) {
+          } else if (groupElement.type === TipGroupElementType.MemberAdd) {
             const { memberUid, adminUid } = groupElement
             if (memberUid !== selfInfo.uid) return
             ctx.logger.info('收到群成员增加消息', groupElement)
@@ -627,10 +625,7 @@ export namespace OB11Entities {
           }
         } else if (grayTipElement.subElementType === GrayTipElementSubType.XmlMsg) {
           const xmlElement = grayTipElement.xmlElement!
-          if (xmlElement.templId === '10382') {
-            ctx.logger.info('收到表情回应我的消息', xmlElement.templParam)
-            return await GroupMsgEmojiLikeEvent.parse(ctx, xmlElement, msg.peerUid, groupName)
-          } else if (xmlElement.templId === '10179' || xmlElement.templId === '10180') {
+          if (xmlElement.templId === '10179' || xmlElement.templId === '10180') {
             ctx.logger.info('收到新人被邀请进群消息', xmlElement)
             const invitor = xmlElement.templParam.get('invitor')
             const invitee = xmlElement.templParam.get('invitee')
@@ -647,21 +642,25 @@ export namespace OB11Entities {
     ctx: Context,
     msg: RawMessage,
     shortId: number
-  ): Promise<OB11FriendRecallNoticeEvent | OB11GroupRecallNoticeEvent | undefined> {
-    const revokeElement = msg.elements[0].grayTipElement?.revokeElement
+  ): Promise<OB11FriendRecallNoticeEvent | OB11GroupRecallNoticeEvent> {
+    const revokeElement = msg.elements[0].grayTipElement?.revokeElement!
     if (msg.chatType === ChatType.Group) {
-      const operator = await ctx.ntGroupApi.getGroupMember(msg.peerUid, revokeElement!.operatorUid)
+      const operator = await ctx.ntGroupApi.getGroupMember(msg.peerUid, revokeElement.operatorUid)
+      let uin = msg.senderUin
+      if (uin === '0' || !uin) {
+        uin = await ctx.ntUserApi.getUinByUid(revokeElement.origMsgSenderUid)
+      }
       const groupName = await getGroupNameWithFallback(ctx, msg)
       return new OB11GroupRecallNoticeEvent(
         parseInt(msg.peerUid),
-        parseInt(msg.senderUin!),
-        parseInt(operator?.uin || msg.senderUin!),
+        parseInt(uin),
+        parseInt(operator.uin || msg.senderUin),
         shortId,
         groupName
       )
     }
     else {
-      return new OB11FriendRecallNoticeEvent(parseInt(msg.senderUin!), shortId)
+      return new OB11FriendRecallNoticeEvent(parseInt(msg.senderUin), shortId)
     }
   }
 

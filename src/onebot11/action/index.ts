@@ -53,12 +53,12 @@ import { GetEssenceMsgList } from './go-cqhttp/GetGroupEssence'
 import { GetGroupHonorInfo } from './group/GetGroupHonorInfo'
 import { HandleQuickOperation } from './go-cqhttp/QuickOperation'
 import { SetEssenceMsg } from './go-cqhttp/SetEssenceMsg'
-import { DeleteEssenceMsg } from './go-cqhttp/DelEssenceMsg'
+import { DeleteEssenceMsg } from './go-cqhttp/DeleteEssenceMsg'
 import { GetEvent } from './llonebot/system/GetEvent'
-import { DelGroupFile } from './go-cqhttp/DelGroupFile'
+import { DeleteGroupFile } from './go-cqhttp/DeleteGroupFile'
 import { GetGroupSystemMsg } from './go-cqhttp/GetGroupSystemMsg'
 import { CreateGroupFileFolder } from './go-cqhttp/CreateGroupFileFolder'
-import { DelGroupFolder } from './go-cqhttp/DelGroupFolder'
+import { DeleteGroupFolder } from './go-cqhttp/DeleteGroupFolder'
 import { GetGroupAtAllRemain } from './go-cqhttp/GetGroupAtAllRemain'
 import { GetGroupRootFiles } from './go-cqhttp/GetGroupRootFiles'
 import { SetOnlineStatus } from './llonebot/user/SetOnlineStatus'
@@ -109,10 +109,19 @@ import { GetPrivateFileUrl } from './llonebot/file/GetPrivateFileUrl'
 import { GetDoubtFriendsAddRequest } from './llonebot/user/GetDoubtFriendsAddRequest'
 import { SetDoubtFriendsAddRequest } from './llonebot/user/SetDoubtFriendsAddRequest'
 import { SetGroupFileForever } from '@/onebot11/action/llonebot/file/SetGroupFileForever'
+import { UploadGroupAlbum } from '@/onebot11/action/llonebot/group/GroupAlbum/UploadGroupAlbum'
+import { GetGroupAlbumList } from '@/onebot11/action/llonebot/group/GroupAlbum/GetGroupAlbumList'
+import { CreateGroupAlbum } from '@/onebot11/action/llonebot/group/GroupAlbum/CreateGroupAlbum'
+import { DeleteGroupNotice } from './llonebot/group/DeleteGroupNotice'
+import { DeleteGroupAlbum } from '@/onebot11/action/llonebot/group/GroupAlbum/DeleteGroupAlbum'
 
 export function initActionMap(adapter: Adapter) {
   const actionHandlers = [
     // llonebot
+    new CreateGroupAlbum(adapter),
+    new DeleteGroupAlbum(adapter),
+    new GetGroupAlbumList(adapter),
+    new UploadGroupAlbum(adapter),
     new SetGroupFileForever(adapter),
     new BatchDeleteGroupMember(adapter),
     new GetFlashFileInfo(adapter),
@@ -154,6 +163,7 @@ export function initActionMap(adapter: Adapter) {
     new GetPrivateFileUrl(adapter),
     new GetDoubtFriendsAddRequest(adapter),
     new SetDoubtFriendsAddRequest(adapter),
+    new DeleteGroupNotice(adapter),
     // onebot11
     new SendLike(adapter),
     new GetMsg(adapter),
@@ -208,10 +218,10 @@ export function initActionMap(adapter: Adapter) {
     new HandleQuickOperation(adapter),
     new SetEssenceMsg(adapter),
     new DeleteEssenceMsg(adapter),
-    new DelGroupFile(adapter),
+    new DeleteGroupFile(adapter),
     new GetGroupSystemMsg(adapter),
     new CreateGroupFileFolder(adapter),
-    new DelGroupFolder(adapter),
+    new DeleteGroupFolder(adapter),
     new GetGroupAtAllRemain(adapter),
     new GetGroupRootFiles(adapter),
     new SendGroupNotice(adapter),

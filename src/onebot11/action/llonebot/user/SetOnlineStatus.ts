@@ -1,4 +1,4 @@
-import { BaseAction } from '../../BaseAction'
+import { BaseAction, Schema } from '../../BaseAction'
 import { ActionName } from '../../types'
 
 interface Payload {
@@ -9,6 +9,11 @@ interface Payload {
 
 export class SetOnlineStatus extends BaseAction<Payload, null> {
   actionName = ActionName.SetOnlineStatus
+  payloadSchema = Schema.object({
+    status: Schema.union([Number, String]).required(),
+    ext_status: Schema.union([Number, String]).required(),
+    battery_status: Schema.union([Number, String]).required()
+  })
 
   async _handle(payload: Payload) {
     const ret = await this.ctx.ntUserApi.setSelfStatus(
@@ -17,8 +22,7 @@ export class SetOnlineStatus extends BaseAction<Payload, null> {
       Number(payload.battery_status),
     )
     if (ret.result !== 0) {
-      this.ctx.logger.error(ret)
-      throw new Error('设置在线状态失败')
+      throw new Error(ret.errMsg)
     }
     return null
   }

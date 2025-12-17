@@ -10,7 +10,10 @@ import {
   Peer,
   RawMessage,
 } from '../ntqqapi/types'
-import { OB11GroupRequestEvent } from './event/request/OB11GroupRequest'
+import {
+  OB11GroupRequestAddEvent,
+  OB11GroupRequestInviteBotEvent,
+} from './event/request/OB11GroupRequest'
 import { OB11FriendRequestEvent } from './event/request/OB11FriendRequest'
 import { OB11GroupDecreaseEvent } from './event/notice/OB11GroupDecreaseEvent'
 import { selfInfo } from '../common/globalVars'
@@ -18,12 +21,10 @@ import { Config as LLOBConfig, OB11Config } from '../common/types'
 import { OB11WebSocket, OB11WebSocketReverse } from './connect/ws'
 import { OB11Http, OB11HttpPost } from './connect/http'
 import { OB11BaseEvent } from './event/OB11BaseEvent'
-import { OB11BaseMetaEvent } from './event/meta/OB11BaseMetaEvent'
-import { postHttpEvent } from './helper/eventForHttp'
 import { initActionMap } from './action'
 import { OB11GroupAdminNoticeEvent } from './event/notice/OB11GroupAdminNoticeEvent'
 import { OB11ProfileLikeEvent } from './event/notice/OB11ProfileLikeEvent'
-import { Msg, SysMsg } from '@/ntqqapi/proto/compiled'
+import { Msg, Notify } from '@/ntqqapi/proto'
 import { OB11GroupIncreaseEvent } from './event/notice/OB11GroupIncreaseEvent'
 import { FlashFileDownloadStatus, FlashFileUploadStatus } from '@/ntqqapi/types/flashfile'
 import {
@@ -40,6 +41,8 @@ import {
 import { OB11GroupDismissEvent } from '@/onebot11/event/notice/OB11GroupDismissEvent'
 import { BaseAction } from './action/BaseAction'
 import { cloneObj } from '@/common/utils'
+import { OB11GroupMsgEmojiLikeEvent } from './event/notice/OB11MsgEmojiLikeEvent'
+import { GroupEssenceEvent } from './event/notice/OB11GroupEssenceEvent'
 
 declare module 'cordis' {
   interface Context {
@@ -89,10 +92,6 @@ class OneBot11Adapter extends Service {
     for (const item of this.connect) {
       item.emitEvent(event)
     }
-    if ((event as OB11BaseMetaEvent).meta_event_type !== 'heartbeat') {
-      // 不上报心跳
-      postHttpEvent(event)
-    }
   }
 
   public dispatchMessageLike(event: OB11BaseEvent, self: boolean, offline: boolean) {
@@ -108,24 +107,23 @@ class OneBot11Adapter extends Service {
       if (notify.type === GroupNotifyType.RequestJoinNeedAdminiStratorPass && notify.status === GroupNotifyStatus.Unhandle) {
         this.ctx.logger.info('有加群请求')
         const requestUin = await this.ctx.ntUserApi.getUinByUid(notify.user1.uid)
-        const event = new OB11GroupRequestEvent(
+        const event = new OB11GroupRequestAddEvent(
           parseInt(notify.group.groupCode),
           parseInt(requestUin) || 0,
           flag,
           notify.postscript,
-          'add',
         )
         this.dispatch(event)
       }
       else if (notify.type === GroupNotifyType.InvitedByMember && notify.status === GroupNotifyStatus.Unhandle) {
-        this.ctx.logger.info('收到邀请我加群通知')
+        this.ctx.logger.info('收到邀请我加群通知, 邀请人uid:', notify.user2.uid)
         const userId = await this.ctx.ntUserApi.getUinByUid(notify.user2.uid)
-        const event = new OB11GroupRequestEvent(
+        this.ctx.logger.info('收到邀请我加群通知, 邀请人uin:', userId)
+        const event = new OB11GroupRequestInviteBotEvent(
           parseInt(notify.group.groupCode),
           parseInt(userId) || 0,
           flag,
           notify.postscript,
-          'invite'
         )
         this.dispatch(event)
       }
@@ -133,27 +131,12 @@ class OneBot11Adapter extends Service {
         this.ctx.logger.info('收到群员邀请加群通知')
         const userId = await this.ctx.ntUserApi.getUinByUid(notify.user1.uid)
         const invitorId = await this.ctx.ntUserApi.getUinByUid(notify.user2.uid)
-        const event = new OB11GroupRequestEvent(
+        const event = new OB11GroupRequestAddEvent(
           parseInt(notify.group.groupCode),
           parseInt(userId) || 0,
           flag,
           notify.postscript,
-          'add',
           parseInt(invitorId) || 0,
-        )
-        this.dispatch(event)
-      }
-      else if ([
-        GroupNotifyType.SetAdmin,
-        GroupNotifyType.CancelAdminNotifyCanceled,
-        GroupNotifyType.CancelAdminNotifyAdmin,
-      ].includes(notify.type)) {
-        this.ctx.logger.info('收到管理员变动通知')
-        const uin = await this.ctx.ntUserApi.getUinByUid(notify.user1.uid)
-        const event = new OB11GroupAdminNoticeEvent(
-          notify.type === GroupNotifyType.SetAdmin ? 'set' : 'unset',
-          parseInt(notify.group.groupCode),
-          parseInt(uin),
         )
         this.dispatch(event)
       }
@@ -215,12 +198,10 @@ class OneBot11Adapter extends Service {
     //     this.dispatch(privateEvent)
     //   }
     // })
-    const shortId = this.ctx.store.createMsgShortId(peer, message.msgId)
+    const shortId = this.ctx.store.createMsgShortId(message)
 
     OB11Entities.recallEvent(this.ctx, message, shortId).then((recallEvent) => {
-      if (recallEvent) {
-        this.dispatch(recallEvent)
-      }
+      this.dispatch(recallEvent)
     }).catch(e => this.ctx.logger.error('handling recall events', e))
   }
 
@@ -314,7 +295,9 @@ class OneBot11Adapter extends Service {
       if (input.senderUid === selfInfo.uid) {
         this.handleMsg(input, true, true)
       }
-      this.handleMsg(input, false, true)
+      else {
+        this.handleMsg(input, false, true)
+      }
     })
     this.ctx.on('nt/message-deleted', input => {
       this.handleRecallMsg(input)
@@ -333,16 +316,16 @@ class OneBot11Adapter extends Service {
       const sysMsg = Msg.Message.decode(input)
       const { msgType, subType } = sysMsg.contentHead ?? {}
       if (msgType === 528 && subType === 39) {
-        const tip = SysMsg.ProfileLikeTip.decode(sysMsg.body!.msgContent!)
+        const tip = Notify.ProfileLike.decode(sysMsg.body.msgContent)
         if (tip.msgType !== 0 || tip.subType !== 203) return
         const detail = tip.content?.msg?.detail
         if (!detail) return
         const [times] = detail.txt?.match(/\d+/) ?? ['0']
-        const event = new OB11ProfileLikeEvent(detail.uin!, detail.nickname!, +times)
+        const event = new OB11ProfileLikeEvent(detail.uin, detail.nickname, +times)
         this.dispatch(event)
       }
       else if (msgType === 33) {
-        const tip = SysMsg.GroupMemberChange.decode(sysMsg.body!.msgContent!)
+        const tip = Notify.GroupMemberChange.decode(sysMsg.body.msgContent)
         if (tip.type !== 130) return
         this.ctx.logger.info('群成员增加', tip)
         const memberUin = await this.ctx.ntUserApi.getUinByUid(tip.memberUid)
@@ -351,7 +334,7 @@ class OneBot11Adapter extends Service {
         this.dispatch(event)
       }
       else if (msgType === 34) {
-        const tip = SysMsg.GroupMemberChange.decode(sysMsg.body!.msgContent!)
+        const tip = Notify.GroupMemberChange.decode(sysMsg.body.msgContent)
         if (tip.type === 130) {
           this.ctx.logger.info('群成员减少', tip)
           const memberUin = await this.ctx.ntUserApi.getUinByUid(tip.memberUid)
@@ -380,6 +363,18 @@ class OneBot11Adapter extends Service {
       }
       else if (msgType === 732 && subType === 21) {
         // 撤回群戳一戳，不再从这里解析，应从 nt/message-deleted 事件中解析
+      } else if (msgType === 44) {
+        const tip = Notify.GroupAdmin.decode(sysMsg.body.msgContent)
+        this.ctx.logger.info('收到管理员变动通知', tip)
+        const uid =  tip.isPromote ? tip.body.extraEnable?.adminUid : tip.body.extraDisable?.adminUid
+        if (!uid) return null
+        const uin = await this.ctx.ntUserApi.getUinByUid(uid)
+        const event = new OB11GroupAdminNoticeEvent(
+          tip.isPromote ? 'set' : 'unset',
+          tip.groupCode,
+          +uin,
+        )
+        this.dispatch(event)
       }
     })
 
@@ -500,6 +495,69 @@ class OneBot11Adapter extends Service {
         Number(selfInfo.uin),
       )
       this.dispatch(event)
+    })
+
+    this.ctx.app.pmhq.addResListener(async data => {
+      if (data.type === 'recv' && data.data.cmd === 'trpc.msg.olpush.OlPushService.MsgPush') {
+        const pushMsg = Msg.PushMsg.decode(Buffer.from(data.data.pb, 'hex'))
+        if (!pushMsg.message.body) {
+          return null
+        }
+        const { msgType, subType } = pushMsg.message?.contentHead ?? {}
+        if (msgType === 732 && subType === 16) {
+          const notify = Msg.NotifyMessageBody.decode(pushMsg.message.body.msgContent.subarray(7))
+          if (notify.field13 === 35) {
+            this.ctx.logger.info('群表情回应', notify.reaction.data.body)
+            const info = notify.reaction.data.body.info
+            const target = notify.reaction.data.body.target
+            const userId = Number(await this.ctx.ntUserApi.getUinByUid(info.operatorUid))
+            const peer: Peer = {
+              chatType: 2,
+              peerUid: String(notify.groupCode),
+              guildId: ''
+            }
+            const targetMsg = await this.ctx.ntMsgApi.getMsgsBySeqAndCount(peer, String(target.sequence), 1, true, true)
+            if (targetMsg.msgList.length === 0) {
+              this.ctx.logger.error('解析群表情回应失败：未找到消息')
+              return
+            }
+            const messageId = this.ctx.store.createMsgShortId(targetMsg.msgList[0])
+            const event = new OB11GroupMsgEmojiLikeEvent(
+              notify.groupCode,
+              userId,
+              messageId,
+              [{
+                emoji_id: info.code,
+                count: 1,
+              }],
+              info.type === 1
+            )
+            this.dispatch(event)
+          }
+        } else if (msgType === 732 && subType === 21) {
+          const notify = Msg.NotifyMessageBody.decode(pushMsg.message.body.msgContent.subarray(7))
+          if (notify.type === 27) {
+            this.ctx.logger.info('收到群精华消息通知', notify)
+            const peer = {
+              chatType: ChatType.Group,
+              peerUid: notify.groupCode.toString(),
+              guildId: ''
+            }
+            const msg = await this.ctx.ntMsgApi.queryFirstMsgBySeq(peer, notify.essenceMessage.msgSequence.toString())
+            if (msg.msgList.length === 0) {
+              return
+            }
+            const event = new GroupEssenceEvent(
+              notify.groupCode,
+              this.ctx.store.createMsgShortId(msg.msgList[0]),
+              notify.essenceMessage.memberUin,
+              notify.essenceMessage.operatorUin,
+              notify.essenceMessage.setFlag === 1 ? 'add' : 'delete'
+            )
+            this.dispatch(event)
+          }
+        }
+      }
     })
   }
 }

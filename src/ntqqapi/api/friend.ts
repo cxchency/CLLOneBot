@@ -1,6 +1,7 @@
-import { CategoryFriend, SimpleInfo } from '../types'
+import { SimpleInfo } from '../types'
 import { invoke, NTMethod } from '../ntcall'
 import { Context, Service } from 'cordis'
+import { GeneralCallResult } from '../services'
 
 declare module 'cordis' {
   interface Context {
@@ -9,12 +10,13 @@ declare module 'cordis' {
 }
 
 export class NTQQFriendApi extends Service {
-  static inject = ['ntUserApi']
+  static inject = ['ntUserApi', 'ntSystemApi']
 
   constructor(protected ctx: Context) {
     super(ctx, 'ntFriendApi', true)
   }
 
+  /** reqTime 可为 0 */
   async handleFriendRequest(friendUid: string, reqTime: string, accept: boolean) {
     return await invoke(NTMethod.HANDLE_FRIEND_REQUEST, [{
       friendUid,
@@ -34,30 +36,22 @@ export class NTQQFriendApi extends Service {
   }
 
   async getBuddyV2(forceRefresh: boolean) {
-    const res = await invoke('nodeIKernelBuddyService/getBuddyListV2', [forceRefresh, 0])
-    const uids = res.data.filter(e => e.categoryId !== 9999).flatMap(e => e.buddyUids)
-    return await this.ctx.ntUserApi.getCoreAndBaseInfo(uids)
-  }
-
-  async getBuddyV2WithCate(refresh = false): Promise<CategoryFriend[]> {
-    const categoryData = (await invoke<{ data: CategoryFriend[] }>(
-      'nodeIKernelBuddyService/getBuddyListV2',
-      [refresh, 0],
-      {
-      },
-    )).data
-    const buddyList = await this.getBuddyList();
-    const buddyMap = new Map<string, SimpleInfo>();
-    for (const buddy of buddyList) {
-      buddyMap.set(buddy.uid!, buddy)
+    const deviceInfo = await this.ctx.ntSystemApi.getDeviceInfo()
+    const version = +deviceInfo.buildVer.split('-')[1]
+    if (version >= 41679) {
+      return await invoke('nodeIKernelBuddyService/getBuddyListV2', ['', forceRefresh, 0])
+    } else {
+      return await invoke<GeneralCallResult & {
+        data: {
+          categoryId: number
+          categorySortId: number
+          categroyName: string
+          categroyMbCount: number
+          onlineCount: number
+          buddyUids: string[]
+        }[]
+      }>('nodeIKernelBuddyService/getBuddyListV2', [forceRefresh, 0])
     }
-    for (const category of categoryData) {
-      category.buddyList = []
-      for (const uid of category.buddyUids) {
-        category.buddyList.push(buddyMap.get(uid)!)
-      }
-    }
-    return categoryData
   }
 
   async isBuddy(uid: string): Promise<boolean> {
@@ -105,5 +99,19 @@ export class NTQQFriendApi extends Service {
 
   async approvalDoubtBuddyReq(uid: string) {
     return await invoke('nodeIKernelBuddyService/approvalDoubtBuddyReq', [uid, '', ''])
+  }
+
+  async getBuddyReq() {
+    return await invoke(
+      'nodeIKernelBuddyService/getBuddyReq',
+      [],
+      {
+        resultCmd: 'nodeIKernelBuddyListener/onBuddyReqChange'
+      }
+    )
+  }
+
+  async getCategoryById(categoryId: number) {
+    return await invoke('nodeIKernelBuddyService/getCategoryById', [categoryId])
   }
 }

@@ -11,6 +11,7 @@ import {
   GroupBulletinListResult,
   GroupMsgMask,
   GroupNotify,
+  GroupNotifyType,
 } from '../types'
 import { invoke, NTMethod } from '../ntcall'
 import { Service, Context } from 'cordis'
@@ -40,18 +41,14 @@ export class NTQQGroupApi extends Service {
     return result[1]
   }
 
-  async getGroupMembers(groupCode: string, forceFetch: boolean = true): Promise<Map<string, GroupMember>> {
-    const data = await invoke(NTMethod.GROUP_MEMBERS, [groupCode, forceFetch])
-    if (data.errCode !== 0) {
-      throw new Error('获取群成员列表出错, ' + data.errMsg)
-    }
-    return data.result.infos
+  async getGroupMembers(groupCode: string, forceFetch: boolean = true) {
+    return await invoke(NTMethod.GROUP_MEMBERS, [groupCode, forceFetch])
   }
 
   async getGroupMember(groupCode: string, uid: string, forceUpdate = false) {
     const data = await invoke<[
       groupCode: string,
-      unknown: number,
+      dataSource: number,
       members: Map<string, GroupMember>
     ]>(
       'nodeIKernelGroupService/getMemberInfo',
@@ -71,22 +68,48 @@ export class NTQQGroupApi extends Service {
   }
 
   async getSingleScreenNotifies(doubt: boolean, number: number, startSeq = '') {
-    const data = await invoke<[boolean, string, GroupNotify[]]>(
+    const data = await invoke<[
+      doubt: boolean,
+      nextStartSeq: string,
+      notifies: GroupNotify[]
+    ]>(
       'nodeIKernelGroupService/getSingleScreenNotifies',
       [doubt, startSeq, number],
       {
         resultCmd: ReceiveCmdS.GROUP_NOTIFY,
+        resultCb: result => {
+          return result[0] === doubt && (startSeq !== '' ? startSeq === result[2][0].seq : true)
+        }
       },
     )
-    return data[2]
+    return {
+      doubt: data[0],
+      nextStartSeq: data[1],
+      notifies: data[2]
+    }
   }
 
   async getGroupRequest(): Promise<{ notifies: GroupNotify[], normalCount: number }> {
     const normal = await this.getSingleScreenNotifies(false, 50)
-    const normalCount = normal.length
+    const normalCount = normal.notifies.length
     const doubt = await this.getSingleScreenNotifies(true, 50)
-    normal.push(...doubt)
-    return { notifies: normal, normalCount }
+    normal.notifies.push(...doubt.notifies)
+    return { notifies: normal.notifies, normalCount }
+  }
+
+  async operateSysNotify(
+    doubt: boolean,
+    operateMsg: {
+      operateType: GroupRequestOperateTypes
+      targetMsg: {
+        seq: string
+        type: GroupNotifyType
+        groupCode: string
+        postscript: string
+      }
+    }
+  ) {
+    return await invoke(NTMethod.HANDLE_GROUP_REQUEST, [doubt, operateMsg])
   }
 
   async handleGroupRequest(flag: string, operateType: GroupRequestOperateTypes, reason?: string) {
@@ -95,18 +118,15 @@ export class NTQQGroupApi extends Service {
     const seq = flagitem[1]
     const type = parseInt(flagitem[2])
     const doubt = flagitem[3] === '1'
-    return await invoke(NTMethod.HANDLE_GROUP_REQUEST, [
-      doubt,
-      {
-        operateType,
-        targetMsg: {
-          seq,
-          type,
-          groupCode,
-          postscript: reason || ' ', // 仅传空值可能导致处理失败，故默认给个空格
-        },
+    return await this.operateSysNotify(doubt, {
+      operateType,
+      targetMsg: {
+        seq,
+        type,
+        groupCode,
+        postscript: reason || ' ', // 仅传空值可能导致处理失败，故默认给个空格
       },
-    ])
+    })
   }
 
   async quitGroup(groupCode: string) {
@@ -135,7 +155,7 @@ export class NTQQGroupApi extends Service {
   }
 
   async setGroupName(groupCode: string, groupName: string) {
-    return await invoke(NTMethod.SET_GROUP_NAME, [groupCode, groupName, false])
+    return await invoke(NTMethod.SET_GROUP_NAME, [groupCode, groupName, true])
   }
 
   async getGroupRemainAtTimes(groupCode: string) {
@@ -288,7 +308,7 @@ export class NTQQGroupApi extends Service {
       infos: Map<string, GroupMember>
     ]>(
       'nodeIKernelGroupService/searchMember',
-      [ sceneId, keyword ],
+      [sceneId, keyword],
       {
         resultCmd: 'nodeIKernelGroupListener/onSearchMemberChange',
         resultCb: payload => {
@@ -322,13 +342,13 @@ export class NTQQGroupApi extends Service {
   }
 
   async moveGroupFile(groupId: string, fileIdList: string[], curFolderId: string, dstFolderId: string) {
-    return await invoke('nodeIKernelRichMediaService/moveGroupFile', [{
+    return await invoke('nodeIKernelRichMediaService/moveGroupFile', [
       groupId,
+      [102],
       fileIdList,
       curFolderId,
-      dstFolderId,
-      busIdList: [102],
-    }])
+      dstFolderId
+    ])
   }
 
   async getGroupShutUpMemberList(groupCode: string) {
@@ -354,10 +374,49 @@ export class NTQQGroupApi extends Service {
     ])
   }
 
-  async setGroupFileForever(groupId: string, fileId: string){
+  async setGroupFileForever(groupId: string, fileId: string) {
     return await invoke('nodeIKernelRichMediaService/transGroupFile', [
       groupId,
       fileId
+    ])
+  }
+
+  async getGroupAlbumList(groupId: string) {
+    return await invoke('nodeIKernelAlbumService/getAlbumList', [{
+      qun_id: groupId,
+      seq: 0,
+      attach_info: '',
+      request_time_line: {
+        request_invoke_time: '0'
+      }
+    }])
+  }
+
+  async createGroupAlbum(groupId: string, name: string, desc: string) {
+    const seq = Date.now()
+    return await invoke('nodeIKernelAlbumService/addAlbum', [seq, {
+      owner: groupId,
+      name,
+      desc,
+      createTime: '0'
+    }])
+  }
+  async deleteGroupAlbum(groupId: string, albumId: string) {
+    return await invoke('nodeIKernelAlbumService/deleteAlbum', [Date.now(), groupId, albumId])
+  }
+  async deleteGroupBulletin(groupCode: string, feedsId: string) {
+    const ntUserApi = this.ctx.get('ntUserApi')!
+    const psKey = (await ntUserApi.getPSkey(['qun.qq.com'])).domainPskeyMap.get('qun.qq.com')!
+    return await invoke('nodeIKernelGroupService/deleteGroupBulletin', [groupCode, psKey, feedsId])
+  }
+
+  async renameGroupFile(groupId: string, fileId: string, parentFolderId: string, newFileName: string) {
+    return await invoke('nodeIKernelRichMediaService/renameGroupFile', [
+      groupId,
+      102,
+      fileId,
+      parentFolderId,
+      newFileName
     ])
   }
 }

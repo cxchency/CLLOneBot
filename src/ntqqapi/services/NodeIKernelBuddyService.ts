@@ -13,6 +13,17 @@ export interface NodeIKernelBuddyService {
     }[]
   }>
 
+  getBuddyListV2(callFrom: string, forceRefresh: boolean, reqType: BuddyListReqType): Promise<GeneralCallResult & {
+    data: {
+      categoryId: number
+      categorySortId: number
+      categroyName: string
+      categroyMbCount: number
+      onlineCount: number
+      buddyUids: string[]
+    }[]
+  }>
+
   setBuddyRemark(remarkParams: { uid: string, remark: string }): Promise<GeneralCallResult>
 
   isBuddy(uid: string): boolean
@@ -21,7 +32,7 @@ export interface NodeIKernelBuddyService {
     friendUid: string
     reqTime: string
     accept: boolean
-  }): Promise<void>
+  }): Promise<GeneralCallResult>
 
   getBuddyRecommendContactArkJson(uid: string, phoneNumber: string): Promise<GeneralCallResult & { arkMsg: string }>
 
@@ -38,4 +49,15 @@ export interface NodeIKernelBuddyService {
   getDoubtBuddyReq(reqId: string, reqNum: number, cookie: string): Promise<GeneralCallResult>
 
   approvalDoubtBuddyReq(uid: string, groupId: string, remark: string): Promise<GeneralCallResult>
+
+  getBuddyReq(): Promise<GeneralCallResult>
+
+  getCategoryById(categoryId: number): Promise<{
+    categoryId: number,
+    categorySortId: number,
+    categroyName: string,
+    categroyMbCount: number,
+    onlineCount: number,
+    buddyUids: string[]
+  }>
 }

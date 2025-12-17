@@ -39,7 +39,23 @@ export class NTQQFileApi extends Service {
     this.rkeyManager = new RkeyManager(ctx, 'https://llob.linyuchen.net/rkey')
   }
 
-  async getVideoUrl(peer: Peer, msgId: string, elementId: string): Promise<string | undefined> {
+  async getVideoUrlByPacket(fileUuid: string, isGroup: boolean) {
+    if (isGroup) {
+      return await this.ctx.get('app')!.pmhq.getGroupVideoUrl(fileUuid)
+    } else {
+      return await this.ctx.get('app')!.pmhq.getPrivateVideoUrl(fileUuid)
+    }
+  }
+
+  async getPttUrl(fileUuid: string, isGroup: boolean) {
+    if (isGroup) {
+      return await this.ctx.get('app')!.pmhq.getGroupPttUrl(fileUuid)
+    } else {
+      return await this.ctx.get('app')!.pmhq.getPrivatePttUrl(fileUuid)
+    }
+  }
+
+  async getVideoUrl(peer: Peer, msgId: string, elementId: string) {
     try {
       const data = await invoke('nodeIKernelRichMediaService/getVideoPlayUrlV2', [
         peer,
@@ -54,7 +70,7 @@ export class NTQQFileApi extends Service {
       if (data.result !== 0) {
         this.ctx.logger.warn('getVideoUrl', data)
       }
-      return data.urlResult.domainUrl[0]?.url
+      return data.urlResult.domainUrl[0]?.url ?? ''
     } catch (e) {
       this.ctx.logger.warn('getVideoUrl error', e)
       return ''
@@ -147,12 +163,8 @@ export class NTQQFileApi extends Service {
   }
 
   async getImageUrl(element: PicElement) {
-    if (!element) {
-      return ''
-    }
-    const url: string = element.originImageUrl!  // 没有域名
+    const url = element.originImageUrl  // 没有域名
     const md5HexStr = element.md5HexStr
-    const fileMd5 = element.md5HexStr
 
     if (url) {
       const parsedUrl = new URL(IMAGE_HTTP_HOST + url) //临时解析拼接
@@ -166,16 +178,16 @@ export class NTQQFileApi extends Service {
         const rkeyData = await this.rkeyManager.getRkey()
         rkey = imageAppid === '1406' ? rkeyData.private_rkey : rkeyData.group_rkey
         return IMAGE_HTTP_HOST_NT + url + rkey
+      } else if (url.startsWith('/offpic_new/')) {
+        return `${IMAGE_HTTP_HOST}/gchatpic_new/0/0-0-${md5HexStr.toUpperCase()}/0`
       } else {
         // 老的图片url，不需要rkey
         return IMAGE_HTTP_HOST + url
       }
-    } else if (fileMd5 || md5HexStr) {
+    } else {
       // 没有url，需要自己拼接
-      return `${IMAGE_HTTP_HOST}/gchatpic_new/0/0-0-${(fileMd5 || md5HexStr)!.toUpperCase()}/0`
+      return `${IMAGE_HTTP_HOST}/gchatpic_new/0/0-0-${md5HexStr.toUpperCase()}/0`
     }
-    this.ctx.logger.error('图片url获取失败', element)
-    return ''
   }
 
   async downloadFileForModelId(peer: Peer, fileModelId: string, timeout = 2 * Time.minute) {
@@ -228,7 +240,7 @@ export class NTQQFileApi extends Service {
   }
 
   async uploadFlashFile(title: string, filePaths: string[]) {
-    const res = await invoke('nodeIKernelFlashTransferService/createFlashTransferUploadTask',
+    return await invoke('nodeIKernelFlashTransferService/createFlashTransferUploadTask',
       [
         new Date().getTime(),
         {
@@ -258,23 +270,16 @@ export class NTQQFileApi extends Service {
         },
       ],
     )
-    if (res.result !== 0) {
-      throw new Error(`创建闪传上传任务失败: ${res.result}`)
-    }
-    return res.createFlashTransferResult
   }
 
   async downloadFlashFile(fileSetId: string, sceneType: number = 1) {
-    const res = await invoke('nodeIKernelFlashTransferService/startFileSetDownload',
+    return await invoke('nodeIKernelFlashTransferService/startFileSetDownload',
       [
         fileSetId,
         sceneType,
         { isIncludeCompressInnerFiles: false },
       ],
     )
-    if (res.result !== 0) {
-      throw new Error(`下载闪传文件失败: ${res.errMsg}`)
-    }
   }
 
   flashFileListCache = new Map<string, FlashFileListItem[]>()
@@ -329,13 +334,9 @@ export class NTQQFileApi extends Service {
 
   async getFlashFileSetIdByCode(code: string) {
     // code 是 qfile.qq.com/q/ 后面的部分
-    const res = await invoke('nodeIKernelFlashTransferService/getFileSetIdByCode',
+    return await invoke('nodeIKernelFlashTransferService/getFileSetIdByCode',
       [code],
     )
-    if (res.result !== 0) {
-      throw new Error(`获取闪传文件 fileSetId 失败: ${res.errMsg}`)
-    }
-    return res.fileSetId
   }
 
   flashFileInfoCache = new Map<string, FlashFileSetInfo>()

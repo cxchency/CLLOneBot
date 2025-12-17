@@ -18,11 +18,11 @@ export interface NodeIKernelRichMediaService {
     }
   }>
 
-  deleteGroupFolder(groupCode: string, folderId: string): Promise<GeneralCallResult & {
+  deleteGroupFolder(groupId: string, folderId: string): Promise<GeneralCallResult & {
     groupFileCommonResult: { retCode: number, retMsg: string, clientWording: string }
   }>
 
-  createGroupFolder(groupCode: string, folderName: string): Promise<GeneralCallResult & {
+  createGroupFolder(groupId: string, folderName: string): Promise<GeneralCallResult & {
     resultWithGroupItem: {
       result: {
         retCode: number
@@ -50,7 +50,7 @@ export interface NodeIKernelRichMediaService {
     }
   }>
 
-  getGroupFileList(groupCode: string, params: GetFileListParam): Promise<GeneralCallResult & {
+  getGroupFileList(groupId: string, fileListForm: GetFileListParam): Promise<GeneralCallResult & {
     groupSpaceResult: {
       retCode: number
       retMsg: string
@@ -61,11 +61,15 @@ export interface NodeIKernelRichMediaService {
     }
   }>
 
-  deleteGroupFile(groupCode: string, params: Array<number>, files: Array<string>): Promise<GeneralCallResult & {
+  deleteGroupFile(groupId: string, busIdList: number[], fileIdList: string[]): Promise<GeneralCallResult & {
     transGroupFileResult: {
-      result: unknown
-      successFileIdList: Array<unknown>
-      failFileIdList: Array<unknown>
+      result: {
+        retCode: number
+        retMsg: string
+        clientWording: string
+      }
+      successFileIdList: string[]
+      failFileIdList: string[]
     }
   }>
 
@@ -85,7 +89,7 @@ export interface NodeIKernelRichMediaService {
     }
   }>
 
-  moveGroupFile(...args: unknown[]): Promise<GeneralCallResult & {
+  moveGroupFile(groupId: string, busIdList: number[], fileIdList: string[], curFolderId: string, dstFolderId: string): Promise<GeneralCallResult & {
     moveGroupFileResult: {
       result: {
         retCode: number
@@ -125,7 +129,7 @@ export interface NodeIKernelRichMediaService {
     }
   }>
 
-  transGroupFile(groupCode: string, fileId: string): Promise<GeneralCallResult & {
+  transGroupFile(groupId: string, fileId: string): Promise<GeneralCallResult & {
     transGroupFileResult: {
       result: { retCode: number, retMsg: 'ok' | unknown, clientWording: string },
       saveBusId: number,
@@ -133,5 +137,15 @@ export interface NodeIKernelRichMediaService {
     }
   }>
 
+  renameGroupFile(groupId: string, busId: number, fileId: string, parentFolderId: string, newFileName: string): Promise<GeneralCallResult & {
+    renameGroupFileResult: {
+      result: {
+        retCode: number
+        retMsg: string
+        clientWording: string
+      }
+      fileId: string
+    }
+  }>
 }
 

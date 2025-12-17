@@ -75,12 +75,30 @@ export interface SatoriConfig {
   token: string
 }
 
+export interface MilkyHttpConfig {
+  port: number
+  prefix: string
+  accessToken: string
+}
+
+export interface MilkyWebhookConfig {
+  urls: string[]
+}
+
+export interface MilkyConfig {
+  enable: boolean
+  reportSelfMessage: boolean
+  http: MilkyHttpConfig
+  webhook: MilkyWebhookConfig
+}
+
 export interface WebUIConfig {
   enable: boolean
   port: number
 }
 
 export interface Config {
+  milky: MilkyConfig
   satori: SatoriConfig
   ob11: OB11Config
   webui: WebUIConfig
@@ -92,6 +110,7 @@ export interface Config {
   ffmpeg?: string // ffmpeg路径
   musicSignUrl?: string
   msgCacheExpire?: number // second
+  rawMsgPB?: boolean  // 开启此选项后 再开启 debug 后 msg 添加 raw_pb 字段，内容是 hex string
   // /** @deprecated */
   // heartInterval?: number // ms
   // /** @deprecated */

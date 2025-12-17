@@ -1,14 +1,14 @@
-# LLTwoBot
+# LLBot
 ![Node.js Version](https://img.shields.io/badge/node-%3E=22.x-brightgreen)
 
 <div align="center">
   <img src="./logo.jpg" width="200" alt="Logo" />
-  <p><strong>Lucky Lillia Two Bot</strong></p>
-  <p>OneBot 11 and Satori Server</p>
+  <p><strong>Lucky Lillia Bot</strong></p>
+  <p>OneBot 11, Satori, Milky Server</p>
 </div>
 
 ## Document
-<https://llonebot.com>
+<https://luckylillia.com>
 
 ## Stargazers over time
 

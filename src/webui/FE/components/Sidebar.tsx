@@ -6,6 +6,7 @@ import {
   Radio,
   Cpu,
   Sliders,
+  Milk,
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -22,6 +23,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, accountInfo }
     { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { id: 'onebot', icon: Radio, label: 'OneBot 11' },
     { id: 'satori', icon: Cpu, label: 'Satori' },
+    { id: 'milky', icon: Milk, label: 'Milky' },
     { id: 'other', icon: Sliders, label: '其他配置' },
     { id: 'about', icon: Info, label: '关于' },
   ]
@@ -36,7 +38,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, accountInfo }
             <img src='/logo.jpg' alt='Logo' className='w-full h-full object-cover' />
           </div>
           <div className='flex-1 min-w-0'>
-            <h1 className='text-xl font-bold text-gray-800 truncate'>LLTwoBot</h1>
+            <h1 className='text-xl font-bold text-gray-800 truncate'>LLBot</h1>
             <p className='text-xs text-gray-500'>WebUI</p>
           </div>
         </div>

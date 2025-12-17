@@ -1,4 +1,4 @@
-import { BaseAction } from '@/onebot11/action/BaseAction'
+import { BaseAction, Schema } from '@/onebot11/action/BaseAction'
 import { ActionName } from '@/onebot11/action/types'
 import { uri2local } from '@/common/utils'
 
@@ -8,13 +8,17 @@ interface Payload {
 }
 
 interface Response {
-  file_set_id: string,
-  share_link: string,
-  expire_time: number,
+  file_set_id: string
+  share_link: string
+  expire_time: number
 }
 
 export class UploadFlashFile extends BaseAction<Payload, Response> {
   actionName = ActionName.UploadFlashFile
+  payloadSchema = Schema.object({
+    title: Schema.string(),
+    paths: Schema.array(String).required()
+  })
 
   async _handle(payload: Payload) {
     const { title, paths } = payload
@@ -33,10 +37,13 @@ export class UploadFlashFile extends BaseAction<Payload, Response> {
       }),
     )
     const res = await this.ctx.ntFileApi.uploadFlashFile(title, localPaths)
+    if (res.result !== 0) {
+      throw new Error(res.result)
+    }
     return {
-      file_set_id: res.fileSetId,
-      share_link: res.shareLink,
-      expire_time: parseInt(res.expireTime),
+      file_set_id: res.createFlashTransferResult.fileSetId,
+      share_link: res.createFlashTransferResult.shareLink,
+      expire_time: parseInt(res.createFlashTransferResult.expireTime),
     }
   }
 }

@@ -1,7 +1,7 @@
 import fs from 'fs'
 import packageJson from '../package-dist.json'
 
-export const version = '6.5.4'
+export const version = '7.1.3'
 
 export const writeVersion = ()=>{
   const pkgJsonPath = './package-dist.json'
