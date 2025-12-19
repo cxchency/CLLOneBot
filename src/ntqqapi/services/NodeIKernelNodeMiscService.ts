@@ -22,4 +22,11 @@ export interface NodeIKernelNodeMiscService {
   }>
 
   queryAutoRun(): Promise<boolean>
+
+  scanQBar(path: string): Promise<{
+    infos: {
+      text: string,
+      format: 'QR_CODE' | string, charset: string
+    }[]
+  }>
 }

@@ -40,4 +40,8 @@ export class NTQQSystemApi extends Service {
       buildVer: string
     }>('getDeviceInfo', [])
   }
+
+  async scanQRCode(path: string){
+    return await invoke('nodeIKernelNodeMiscService/scanQBar', [path])
+  }
 }

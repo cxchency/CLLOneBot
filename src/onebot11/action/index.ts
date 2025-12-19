@@ -112,10 +112,12 @@ import { GetGroupAlbumList } from '@/onebot11/action/llonebot/group/GroupAlbum/G
 import { CreateGroupAlbum } from '@/onebot11/action/llonebot/group/GroupAlbum/CreateGroupAlbum'
 import { DeleteGroupNotice } from './llonebot/group/DeleteGroupNotice'
 import { DeleteGroupAlbum } from '@/onebot11/action/llonebot/group/GroupAlbum/DeleteGroupAlbum'
+import { ScanQRCode } from '@/onebot11/action/llonebot/system/ScanQRCode'
 
 export function initActionMap(adapter: Adapter) {
   const actionHandlers = [
     // llonebot
+    new ScanQRCode(adapter),
     new CreateGroupAlbum(adapter),
     new DeleteGroupAlbum(adapter),
     new GetGroupAlbumList(adapter),
