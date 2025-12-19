@@ -531,6 +531,9 @@ export class PMHQ {
     })
     const res = await this.httpSendPB('trpc.group.long_msg_interface.MsgService.SsoRecvLongMsg', data)
     const payload = Action.RecvLongMsgResp.decode(Buffer.from(res.pb, 'hex')).result.payload
+    if (payload.length === 0) {
+      throw new Error('获取合并转发消息内容失败')
+    }
     const inflate = gunzipSync(payload)
     return Msg.PbMultiMsgTransmit.decode(inflate).pbItemList
   }
