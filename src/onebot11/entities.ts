@@ -172,36 +172,31 @@ export namespace OB11Entities {
         }
         try {
           const { replayMsgSeq: replyMsgSeq, replyMsgTime } = replyElement
-          let record = msg.records.find(msgRecord => msgRecord.msgId === replyElement.sourceMsgIdInRecords)
+          const record = msg.records.find(msgRecord => msgRecord.msgId === replyElement.sourceMsgIdInRecords)
           const { msgList } = await ctx.ntMsgApi.getMsgsBySeqAndCount(peer, replyMsgSeq, 1, true, true)
-          if (!record) {
-            record = msgList.find(msg => msg.msgSeq === replyMsgSeq && msg.msgTime === replyMsgTime)
-          }
-          const senderUid = replyElement.senderUidStr || record?.senderUid
-          if (!record || !replyMsgTime || !senderUid) {
+          if (!replyMsgTime) {
             ctx.logger.error('找不到回复消息', replyElement)
             continue
           }
 
           let replyMsg: RawMessage | undefined
-          if (record.msgRandom !== '0') {
+          if (record && record.msgRandom !== '0') {
             replyMsg = msgList.find((msg: RawMessage) => msg.msgRandom === record.msgRandom)
           } else {
-            ctx.logger.info('msgRandom is missing', replyElement, record)
             if (msgList.length > 0) {
-              replyMsg = msgList[0]
-            } else {
+              replyMsg = msgList.find(msg => msg.msgTime === replyMsgTime)
+            } else if (record) {
               if (record.senderUin && record.senderUin !== '0') {
                 peer.chatType = record.chatType
                 peer.peerUid = record.peerUid
                 ctx.store.addMsgCache(record)
               }
-              ctx.logger.info('msgList is empty, use record')
+              ctx.logger.info('msgList is empty, use record', replyElement, record)
               replyMsg = record
             }
           }
           if (!replyMsg) {
-            ctx.logger.error('获取不到引用的消息', replyElement)
+            ctx.logger.error('获取不到引用的消息', replyElement, record)
             continue
           }
 
