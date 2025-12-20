@@ -133,7 +133,7 @@ export class NTQQMsgApi extends Service {
       },
     )
     destPeer.guildId = ''
-    return data.filter(msgRecord => msgRecord.guildId === uniqueId)
+    return data.find(msgRecord => msgRecord.guildId === uniqueId)!
   }
 
   async multiForwardMsg(srcPeer: Peer, destPeer: Peer, msgIds: string[]): Promise<RawMessage> {
@@ -141,7 +141,6 @@ export class NTQQMsgApi extends Service {
     const msgInfos = msgIds.map(id => {
       return { msgId: id, senderShowName }
     })
-    const selfUid = selfInfo.uid
     const commentElements: unknown[] = []
     const msgAttributeInfos = new Map()
     const data = await invoke<RawMessage[]>(
@@ -161,7 +160,7 @@ export class NTQQMsgApi extends Service {
               msgRecord.msgType === 11 &&
               msgRecord.subMsgType === 7 &&
               msgRecord.peerUid === destPeer.peerUid &&
-              msgRecord.senderUid === selfUid
+              msgRecord.senderUid === selfInfo.uid
             ) {
               const element = msgRecord.elements[0]
               const data = JSON.parse(element.arkElement!.bytesData)
@@ -176,10 +175,20 @@ export class NTQQMsgApi extends Service {
       },
     )
     return data.find(msgRecord => {
-      const { arkElement } = msgRecord.elements[0]
-      if (arkElement?.bytesData.includes('com.tencent.multimsg')) {
+      if (
+        msgRecord.msgType === 11 &&
+        msgRecord.subMsgType === 7 &&
+        msgRecord.peerUid === destPeer.peerUid &&
+        msgRecord.senderUid === selfInfo.uid
+      ) {
+        const element = msgRecord.elements[0]
+        const data = JSON.parse(element.arkElement!.bytesData)
+        if (data.app !== 'com.tencent.multimsg' || !data.meta.detail.resid) {
+          return false
+        }
         return true
       }
+      return false
     })!
   }
 
