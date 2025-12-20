@@ -1,7 +1,5 @@
 import { BaseAction, Schema } from '../../BaseAction'
 import { ActionName } from '../../types'
-import { selfInfo } from '@/common/globalVars'
-import { Dict } from 'cosmokit'
 import { uri2local } from '@/common/utils'
 
 interface Payload {
@@ -14,6 +12,9 @@ interface ScanResultItem {
 
 export class ScanQRCode extends BaseAction<Payload, ScanResultItem[]> {
   actionName = ActionName.ScanQRCode
+  payloadSchema = Schema.object({
+    file: Schema.string().required()
+  })
 
   async _handle(payload: Payload): Promise<ScanResultItem[]> {
     const { path: localPath, errMsg } = await uri2local(this.ctx, payload.file)

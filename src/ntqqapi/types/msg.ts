@@ -130,8 +130,6 @@ export interface ReplyElement {
   sourceMsgExpired: boolean
   anonymousNickName: unknown
   originalMsgState: unknown
-  senderUin?: string
-  senderUinStr?: string
 }
 
 export interface FileElement {
@@ -415,7 +413,7 @@ export interface FaceElement {
 
 export interface MarketFaceElement {
   emojiPackageId: number
-  faceName?: string
+  faceName: string
   emojiId: string
   key: string
   imageWidth?: number

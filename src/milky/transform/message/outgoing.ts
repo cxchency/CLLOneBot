@@ -32,7 +32,7 @@ export async function transformOutgoingMessage(
       } else if (segment.type === 'mention_all' && isGroup) {
         elements.push(SendElement.at('', '', AtType.All, '@全体成员'))
       } else if (segment.type === 'face') {
-        elements.push(SendElement.face(+segment.data.face_id))
+        elements.push(SendElement.face(+segment.data.face_id, segment.data.is_large ? 3 : undefined))
       } else if (segment.type === 'reply') {
         const replyMsgSeq = segment.data.message_seq.toString()
         const peer = {
@@ -44,7 +44,7 @@ export async function transformOutgoingMessage(
         if (source.msgList.length === 0) {
           throw new Error('被回复的消息未找到')
         }
-        elements.push(SendElement.reply(replyMsgSeq, source.msgList[0].msgId, source.msgList[0].senderUin))
+        elements.push(SendElement.reply(replyMsgSeq, source.msgList[0].msgId, source.msgList[0].senderUid))
       } else if (segment.type === 'image') {
         const imageBuffer = await resolveMilkyUri(segment.data.uri)
         // Save to temp file and upload
