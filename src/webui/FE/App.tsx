@@ -28,6 +28,7 @@ function App() {
   const [passwordResolve, setPasswordResolve] = useState<((value: string) => void) | null>(null);
   const [showSatoriToken, setShowSatoriToken] = useState(false);
   const [showMilkyToken, setShowMilkyToken] = useState(false);
+  const [showMilkyWebhookToken, setShowMilkyWebhookToken] = useState(false);
   const [showChangePasswordDialog, setShowChangePasswordDialog] = useState(false);
 
   // 设置密码提示处理器
@@ -519,6 +520,35 @@ function App() {
                           </button>
                         </div>
                         <p className="text-xs text-gray-500 mt-2">事件上报的 Webhook 地址</p>
+                      </div>
+
+                      <div className="mt-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Access Token
+                        </label>
+                        <div className="relative">
+                          <input
+                            type={showMilkyWebhookToken ? 'text' : 'password'}
+                            value={config.milky.webhook.accessToken}
+                            onChange={(e) => setConfig({
+                              ...config,
+                              milky: {
+                                ...config.milky,
+                                webhook: { ...config.milky.webhook, accessToken: e.target.value }
+                              }
+                            })}
+                            placeholder="请输入 Access Token"
+                            className="input-field pr-12"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowMilkyWebhookToken(!showMilkyWebhookToken)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors p-1"
+                          >
+                            {showMilkyWebhookToken ? <EyeOff size={20} /> : <Eye size={20} />}
+                          </button>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">用于 Webhook 请求验证的 Token</p>
                       </div>
                     </div>
                   </>
