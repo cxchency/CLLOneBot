@@ -1,0 +1,49 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Dev",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "runtimeExecutable": "tsx",
+            "args": ["watch", "src/main/main.ts", "--pmhq-port=${input:pmhqPort}"],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Dev WebUI",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "runtimeExecutable": "npm",
+            "runtimeArgs": ["--prefix", "src/webui/FE", "run", "dev"],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "env": {
+                "WEBUI_PORT": "${input:webuiPort}"
+            }
+        }
+    ],
+    "inputs": [
+        {
+            "id": "pmhqPort",
+            "type": "promptString",
+            "description": "PMHQ Port",
+            "default": "13000"
+        },
+        {
+            "id": "webuiPort",
+            "type": "promptString",
+            "description": "WebUI Server Port",
+            "default": "3080"
+        }
+    ]
+}

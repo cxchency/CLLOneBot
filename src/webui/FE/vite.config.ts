@@ -17,7 +17,7 @@ export default defineConfig({
     open: true,
     proxy: {
       '/api': {
-        target: 'http://127.0.0.1:3081',
+        target: `http://127.0.0.1:${process.env.WEBUI_PORT || 3080}`,
         changeOrigin: true,
       },
     },
