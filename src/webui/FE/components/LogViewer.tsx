@@ -189,7 +189,7 @@ const LogViewer: React.FC = () => {
                   onClick={() => setLevelFilter(item.value)}
                   className={`px-3 py-1.5 text-xs font-medium transition-all ${
                     levelFilter === item.value
-                      ? 'bg-gradient-to-br from-blue-500 to-purple-600 text-white'
+                      ? 'gradient-primary-br text-white'
                       : 'bg-white/50 text-gray-600 hover:bg-white/80'
                   }`}
                 >

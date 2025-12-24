@@ -172,13 +172,7 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
               // 总开关变更时保存，直接传入新配置
               onSave(newConfig);
             }}
-            className="w-14 h-7 rounded-full bg-gray-300 relative cursor-pointer appearance-none
-              checked:bg-gradient-to-r checked:from-blue-500 checked:to-purple-600
-              transition-colors duration-200 ease-in-out
-              before:content-[''] before:absolute before:top-0.5 before:left-0.5
-              before:w-6 before:h-6 before:rounded-full before:bg-white
-              before:transition-transform before:duration-200
-              checked:before:translate-x-7"
+            className="switch-toggle-lg"
           />
         </label>
       </div>
@@ -203,7 +197,7 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
                   <div className="flex items-center gap-3">
                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
                       adapter.enable
-                        ? 'bg-gradient-to-br from-blue-500 to-purple-600 text-white'
+                        ? 'gradient-primary-br text-white'
                         : 'bg-gray-200 text-gray-600'
                     }`}>
                       <Icon size={24} />
@@ -329,13 +323,7 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
                     type="checkbox"
                     checked={selectedAdapter.enable}
                     onChange={(e) => updateSelectedAdapter('enable', e.target.checked)}
-                    className="w-12 h-6 rounded-full bg-gray-300 relative cursor-pointer appearance-none
-                      checked:bg-gradient-to-r checked:from-blue-500 checked:to-purple-600
-                      transition-colors duration-200 ease-in-out
-                      before:content-[''] before:absolute before:top-0.5 before:left-0.5
-                      before:w-5 before:h-5 before:rounded-full before:bg-white
-                      before:transition-transform before:duration-200
-                      checked:before:translate-x-6"
+                    className="switch-toggle"
                   />
                 </label>
               </div>
@@ -422,13 +410,7 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
                         type="checkbox"
                         checked={(selectedAdapter as HttpPostConnectConfig).enableHeart}
                         onChange={(e) => updateSelectedAdapter('enableHeart', e.target.checked)}
-                        className="w-12 h-6 rounded-full bg-gray-300 relative cursor-pointer appearance-none
-                          checked:bg-gradient-to-r checked:from-blue-500 checked:to-purple-600
-                          transition-colors duration-200 ease-in-out
-                          before:content-[''] before:absolute before:top-0.5 before:left-0.5
-                          before:w-5 before:h-5 before:rounded-full before:bg-white
-                          before:transition-transform before:duration-200
-                          checked:before:translate-x-6"
+                        className="switch-toggle"
                       />
                     </label>
                   </div>
@@ -502,13 +484,7 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
                         type="checkbox"
                         checked={selectedAdapter.reportSelfMessage}
                         onChange={(e) => updateSelectedAdapter('reportSelfMessage', e.target.checked)}
-                        className="w-12 h-6 rounded-full bg-gray-300 relative cursor-pointer appearance-none
-                          checked:bg-gradient-to-r checked:from-blue-500 checked:to-purple-600
-                          transition-colors duration-200 ease-in-out
-                          before:content-[''] before:absolute before:top-0.5 before:left-0.5
-                          before:w-5 before:h-5 before:rounded-full before:bg-white
-                          before:transition-transform before:duration-200
-                          checked:before:translate-x-6"
+                        className="switch-toggle"
                       />
                     </label>
                   </div>
@@ -520,13 +496,7 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
                         type="checkbox"
                         checked={selectedAdapter.reportOfflineMessage}
                         onChange={(e) => updateSelectedAdapter('reportOfflineMessage', e.target.checked)}
-                        className="w-12 h-6 rounded-full bg-gray-300 relative cursor-pointer appearance-none
-                          checked:bg-gradient-to-r checked:from-blue-500 checked:to-purple-600
-                          transition-colors duration-200 ease-in-out
-                          before:content-[''] before:absolute before:top-0.5 before:left-0.5
-                          before:w-5 before:h-5 before:rounded-full before:bg-white
-                          before:transition-transform before:duration-200
-                          checked:before:translate-x-6"
+                        className="switch-toggle"
                       />
                     </label>
                   </div>
@@ -538,13 +508,7 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
                         type="checkbox"
                         checked={selectedAdapter.debug}
                         onChange={(e) => updateSelectedAdapter('debug', e.target.checked)}
-                        className="w-12 h-6 rounded-full bg-gray-300 relative cursor-pointer appearance-none
-                          checked:bg-gradient-to-r checked:from-blue-500 checked:to-purple-600
-                          transition-colors duration-200 ease-in-out
-                          before:content-[''] before:absolute before:top-0.5 before:left-0.5
-                          before:w-5 before:h-5 before:rounded-full before:bg-white
-                          before:transition-transform before:duration-200
-                          checked:before:translate-x-6"
+                        className="switch-toggle"
                       />
                     </label>
                   </div>
@@ -599,9 +563,9 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
             <div className="p-6 space-y-3">
               <button
                 onClick={() => handleAddAdapter('ws')}
-                className="w-full p-4 rounded-2xl bg-gradient-to-br from-blue-50 to-purple-50 hover:from-blue-100 hover:to-purple-100 transition-all flex items-center gap-4 group"
+                className="w-full p-4 rounded-2xl bg-gradient-to-br from-pink-50 to-rose-50 hover:from-pink-100 hover:to-rose-100 transition-all flex items-center gap-4 group"
               >
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 text-white flex items-center justify-center group-hover:scale-110 transition-transform">
+                <div className="w-12 h-12 rounded-xl gradient-primary-br text-white flex items-center justify-center group-hover:scale-110 transition-transform">
                   <Radio size={24} />
                 </div>
                 <div className="text-left">

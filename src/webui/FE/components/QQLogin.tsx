@@ -334,7 +334,7 @@ const QQLogin: React.FC<QQLoginProps> = ({ onLoginSuccess }) => {
               <button
                 onClick={handleQuickLogin}
                 disabled={!selectedAccount || loginLoading}
-                className="w-[280px] h-11 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-full font-medium text-base disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                className="w-[280px] h-11 gradient-primary text-white rounded-full font-medium text-base disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg transition-all flex items-center justify-center gap-2"
               >
                 {loginLoading ? (
                   <>

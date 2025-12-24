@@ -20,7 +20,7 @@ const OtherConfig: React.FC<OtherConfigProps> = ({ config, onChange, onOpenChang
       <div className='card p-6'>
         <div className='flex items-center gap-3 mb-6'>
           <div
-            className='w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center'>
+            className='w-10 h-10 rounded-xl gradient-primary-br flex items-center justify-center'>
             <Globe size={20} className='text-white' />
           </div>
           <div>
@@ -44,13 +44,7 @@ const OtherConfig: React.FC<OtherConfigProps> = ({ config, onChange, onOpenChang
               type='checkbox'
               checked={config.log}
               onChange={(e) => handleChange('log', e.target.checked)}
-              className="w-12 h-6 rounded-full bg-gray-300 relative cursor-pointer appearance-none
-                checked:bg-gradient-to-r checked:from-blue-500 checked:to-purple-600
-                transition-colors duration-200 ease-in-out
-                before:content-[''] before:absolute before:top-0.5 before:left-0.5
-                before:w-5 before:h-5 before:rounded-full before:bg-white
-                before:transition-transform before:duration-200
-                checked:before:translate-x-6"
+              className="switch-toggle"
             />
           </div>
           <div
@@ -66,13 +60,7 @@ const OtherConfig: React.FC<OtherConfigProps> = ({ config, onChange, onOpenChang
               type='checkbox'
               checked={config.onlyLocalhost}
               onChange={(e) => handleChange('onlyLocalhost', e.target.checked)}
-              className="w-12 h-6 rounded-full bg-gray-300 relative cursor-pointer appearance-none
-                checked:bg-gradient-to-r checked:from-blue-500 checked:to-purple-600
-                transition-colors duration-200 ease-in-out
-                before:content-[''] before:absolute before:top-0.5 before:left-0.5
-                before:w-5 before:h-5 before:rounded-full before:bg-white
-                before:transition-transform before:duration-200
-                checked:before:translate-x-6"
+              className="switch-toggle"
             />
           </div>
           <div
@@ -89,13 +77,7 @@ const OtherConfig: React.FC<OtherConfigProps> = ({ config, onChange, onOpenChang
               type='checkbox'
               checked={config.enableLocalFile2Url}
               onChange={(e) => handleChange('enableLocalFile2Url', e.target.checked)}
-              className="w-12 h-6 rounded-full bg-gray-300 relative cursor-pointer appearance-none
-                checked:bg-gradient-to-r checked:from-blue-500 checked:to-purple-600
-                transition-colors duration-200 ease-in-out
-                before:content-[''] before:absolute before:top-0.5 before:left-0.5
-                before:w-5 before:h-5 before:rounded-full before:bg-white
-                before:transition-transform before:duration-200
-                checked:before:translate-x-6"
+              className="switch-toggle"
             />
           </div>
 
@@ -129,13 +111,7 @@ const OtherConfig: React.FC<OtherConfigProps> = ({ config, onChange, onOpenChang
               type='checkbox'
               checked={config.autoDeleteFile}
               onChange={(e) => handleChange('autoDeleteFile', e.target.checked)}
-              className="w-12 h-6 rounded-full bg-gray-300 relative cursor-pointer appearance-none
-                checked:bg-gradient-to-r checked:from-blue-500 checked:to-purple-600
-                transition-colors duration-200 ease-in-out
-                before:content-[''] before:absolute before:top-0.5 before:left-0.5
-                before:w-5 before:h-5 before:rounded-full before:bg-white
-                before:transition-transform before:duration-200
-                checked:before:translate-x-6"
+              className="switch-toggle"
             />
           </div>
 
@@ -246,7 +222,7 @@ const OtherConfig: React.FC<OtherConfigProps> = ({ config, onChange, onOpenChang
           </div>
           <button
             onClick={onOpenChangePassword}
-            className='px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg text-sm font-medium hover:shadow-lg transition-all flex items-center gap-2'
+            className='px-4 py-2 gradient-primary text-white rounded-lg text-sm font-medium hover:shadow-lg transition-all flex items-center gap-2'
           >
             <Edit size={16} />
             修改密码

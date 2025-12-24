@@ -57,7 +57,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, accountInfo }
               onClick={() => onTabChange(item.id)}
               className={`w-full flex items-center space-x-3 px-4 py-3 rounded-2xl transition-all duration-200 ${
                 isActive
-                  ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg scale-105'
+                  ? 'gradient-primary text-white shadow-lg scale-105'
                   : 'text-gray-700 hover:bg-white/50 hover:backdrop-blur-sm'
               }`}
             >

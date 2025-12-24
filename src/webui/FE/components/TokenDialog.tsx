@@ -138,7 +138,7 @@ const TokenDialog: React.FC<TokenDialogProps> = ({ visible, onConfirm, onClose, 
             <button
               onClick={handleConfirm}
               disabled={!password.trim()}
-              className="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg font-medium hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none"
+              className="px-6 py-2.5 gradient-primary text-white rounded-lg font-medium hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none"
             >
               确定
             </button>

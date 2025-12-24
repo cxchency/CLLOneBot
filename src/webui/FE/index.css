@@ -49,12 +49,46 @@
     @apply bg-white/60 backdrop-blur-xl rounded-3xl shadow-card hover:shadow-card-hover transition-all duration-300 border border-white/50;
   }
   
+  /* 主题渐变色 - 粉珊瑚系 */
+  .gradient-primary {
+    background: linear-gradient(to right, #ec4899 0%, #f87171 100%);
+  }
+  
+  .gradient-primary-br {
+    background: linear-gradient(to bottom right, #ec4899 0%, #f87171 100%);
+  }
+  
   .btn-primary {
-    @apply bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-2.5 rounded-xl font-medium hover:shadow-lg hover:scale-105 transition-all duration-200;
+    @apply gradient-primary text-white px-6 py-2.5 rounded-xl font-medium hover:shadow-lg hover:scale-105 transition-all duration-200;
+  }
+  
+  /* Switch 开关样式 */
+  .switch-toggle {
+    @apply w-12 h-6 rounded-full bg-gray-300 relative cursor-pointer appearance-none
+      transition-colors duration-200 ease-in-out
+      before:content-[''] before:absolute before:top-0.5 before:left-0.5
+      before:w-5 before:h-5 before:rounded-full before:bg-white
+      before:transition-transform before:duration-200
+      checked:before:translate-x-6;
+    &:checked {
+      background: linear-gradient(to right, #ec4899 0%, #f87171 100%);
+    }
+  }
+  
+  .switch-toggle-lg {
+    @apply w-14 h-7 rounded-full bg-gray-300 relative cursor-pointer appearance-none
+      transition-colors duration-200 ease-in-out
+      before:content-[''] before:absolute before:top-0.5 before:left-0.5
+      before:w-6 before:h-6 before:rounded-full before:bg-white
+      before:transition-transform before:duration-200
+      checked:before:translate-x-7;
+    &:checked {
+      background: linear-gradient(to right, #ec4899 0%, #f87171 100%);
+    }
   }
   
   .input-field {
-    @apply w-full px-4 py-2.5 border border-white/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white/40 backdrop-blur-sm;
+    @apply w-full px-4 py-2.5 border border-white/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-transparent transition-all bg-white/40 backdrop-blur-sm;
   }
   
   .switch {
