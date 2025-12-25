@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react'
+import { createPortal } from 'react-dom'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { Users, Send, Image as ImageIcon, X, Loader2, AlertCircle, RefreshCw } from 'lucide-react'
 import type { ChatSession, RawMessage, MessageElement } from '../../types/webqq'
@@ -30,9 +31,41 @@ const getProxyImageUrl = (url: string | undefined): string => {
   return url
 }
 
+// 图片预览上下文
+const ImagePreviewContext = React.createContext<{
+  showPreview: (url: string) => void
+} | null>(null)
+
+// 图片预览弹窗组件
+const ImagePreviewModal: React.FC<{ url: string | null; onClose: () => void }> = ({ url, onClose }) => {
+  if (!url) return null
+  
+  return createPortal(
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
+      onClick={onClose}
+    >
+      <button 
+        onClick={onClose}
+        className="absolute top-4 right-4 p-2 text-white/80 hover:text-white bg-black/50 rounded-full"
+      >
+        <X size={24} />
+      </button>
+      <img 
+        src={url} 
+        alt="预览" 
+        className="max-w-[90vw] max-h-[90vh] object-contain"
+        onClick={(e) => e.stopPropagation()}
+      />
+    </div>,
+    document.body
+  )
+}
+
 const MessageElementRenderer = memo<{ element: MessageElement }>(({ element }) => {
   const [imageLoaded, setImageLoaded] = useState(false)
   const [imageError, setImageError] = useState(false)
+  const previewContext = React.useContext(ImagePreviewContext)
   
   if (element.textElement) return <span className="whitespace-pre-wrap break-words">{element.textElement.content}</span>
   if (element.picElement) {
@@ -59,7 +92,7 @@ const MessageElementRenderer = memo<{ element: MessageElement }>(({ element }) =
       <div 
         className="relative rounded-lg overflow-hidden bg-theme-item cursor-pointer"
         style={{ width: displayWidth, height: displayHeight }}
-        onClick={() => window.open(proxyUrl, '_blank')}
+        onClick={() => previewContext?.showPreview(proxyUrl)}
       >
         {!imageLoaded && !imageError && (
           <div className="absolute inset-0 flex items-center justify-center text-theme-hint">
@@ -177,6 +210,11 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
   const [inputText, setInputText] = useState('')
   const [sending, setSending] = useState(false)
   const [imagePreview, setImagePreview] = useState<{ file: File; url: string } | null>(null)
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null)
+  
+  const imagePreviewContextValue = useMemo(() => ({
+    showPreview: (url: string) => setPreviewImageUrl(url)
+  }), [])
   
   const { getCachedMessages, setCachedMessages, appendCachedMessage } = useWebQQStore()
   
@@ -469,17 +507,18 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
   }
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-theme-divider bg-theme-card">
-        <div className="flex items-center gap-3">
-          <img src={session.peerAvatar} alt={session.peerName} className="w-10 h-10 rounded-full object-cover" />
-          <div>
-            <div className="font-medium text-theme">{session.peerName}</div>
-            <div className="text-xs text-theme-hint">{session.chatType === 'group' ? '群聊' : '私聊'}</div>
+    <ImagePreviewContext.Provider value={imagePreviewContextValue}>
+      <div className="flex flex-col h-full">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-theme-divider bg-theme-card">
+          <div className="flex items-center gap-3">
+            <img src={session.peerAvatar} alt={session.peerName} className="w-10 h-10 rounded-full object-cover" />
+            <div>
+              <div className="font-medium text-theme">{session.peerName}</div>
+              <div className="text-xs text-theme-hint">{session.chatType === 'group' ? '群聊' : '私聊'}</div>
+            </div>
           </div>
-        </div>
-        {session.chatType === 'group' && onShowMembers && (
-          <button onClick={onShowMembers} className="p-2 text-theme-muted hover:text-theme hover:bg-theme-item rounded-lg" title="查看群成员">
+          {session.chatType === 'group' && onShowMembers && (
+            <button onClick={onShowMembers} className="p-2 text-theme-muted hover:text-theme hover:bg-theme-item rounded-lg" title="查看群成员">
             <Users size={20} />
           </button>
         )}
@@ -544,7 +583,9 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
           </button>
         </div>
       </div>
-    </div>
+      </div>
+      <ImagePreviewModal url={previewImageUrl} onClose={() => setPreviewImageUrl(null)} />
+    </ImagePreviewContext.Provider>
   )
 }
 
