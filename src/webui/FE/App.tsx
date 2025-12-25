@@ -18,7 +18,14 @@ import { version } from '../../version'
 
 
 function App() {
-  const [activeTab, setActiveTab] = useState('dashboard');
+  // 从 URL hash 读取初始 tab，默认 dashboard
+  const getInitialTab = () => {
+    const hash = window.location.hash.slice(1) // 去掉 #
+    const validTabs = ['dashboard', 'onebot', 'satori', 'milky', 'logs', 'other', 'webqq', 'about']
+    return validTabs.includes(hash) ? hash : 'dashboard'
+  }
+
+  const [activeTab, setActiveTab] = useState(getInitialTab);
   const [config, setConfig] = useState<Config>(defaultConfig);
   const [loading, setLoading] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -43,6 +50,24 @@ function App() {
       });
     });
   }, []);
+
+  // 同步 tab 和 URL hash
+  useEffect(() => {
+    window.location.hash = activeTab
+  }, [activeTab])
+
+  // 监听浏览器前进/后退
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.slice(1)
+      const validTabs = ['dashboard', 'onebot', 'satori', 'milky', 'logs', 'other', 'webqq', 'about']
+      if (validTabs.includes(hash)) {
+        setActiveTab(hash)
+      }
+    }
+    window.addEventListener('hashchange', handleHashChange)
+    return () => window.removeEventListener('hashchange', handleHashChange)
+  }, [])
 
   // 处理密码确认
   const handlePasswordConfirm = useCallback((password: string) => {
