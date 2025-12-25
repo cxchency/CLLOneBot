@@ -66,6 +66,17 @@ const WebQQPage: React.FC = () => {
     setRecentChats
   } = useWebQQStore()
 
+  // 用于从群成员面板 @ 成员
+  const [appendInputText, setAppendInputText] = React.useState<string>('')
+
+  const handleAtMember = useCallback((name: string) => {
+    setAppendInputText(`@${name} `)
+  }, [])
+
+  const handleAppendInputTextConsumed = useCallback(() => {
+    setAppendInputText('')
+  }, [])
+
   useEffect(() => {
     // 每次进入 WebQQ 页面时重置已访问聊天记录
     resetVisitedChats()
@@ -254,12 +265,18 @@ const WebQQPage: React.FC = () => {
           session={currentChat}
           onShowMembers={() => setShowMemberPanel(true)}
           onNewMessageCallback={handleSetNewMessageCallback}
+          appendInputText={appendInputText}
+          onAppendInputTextConsumed={handleAppendInputTextConsumed}
         />
       </div>
 
       {showMemberPanel && currentChat?.chatType === 2 && (
         <div className="w-64 border-l border-theme-divider flex-shrink-0">
-          <GroupMemberPanel groupCode={currentChat.peerId} onClose={() => setShowMemberPanel(false)} />
+          <GroupMemberPanel 
+            groupCode={currentChat.peerId} 
+            onClose={() => setShowMemberPanel(false)} 
+            onAtMember={handleAtMember}
+          />
         </div>
       )}
     </div>

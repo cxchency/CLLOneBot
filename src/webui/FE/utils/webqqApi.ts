@@ -252,6 +252,129 @@ export async function getUserDisplayName(uid: string, groupCode?: string): Promi
   }
 }
 
+// 戳一戳 - 使用 pmhq 服务
+export async function sendPoke(chatType: number, targetUin: number, groupCode?: number): Promise<void> {
+  if (chatType === 2 && groupCode) {
+    // 群聊戳一戳
+    await ntCall('pmhq', 'sendGroupPoke', [Number(groupCode), Number(targetUin)])
+  } else {
+    // 私聊戳一戳
+    await ntCall('pmhq', 'sendFriendPoke', [Number(targetUin)])
+  }
+}
+
+// 用户资料
+export interface UserProfile {
+  uid: string
+  uin: string
+  nickname: string
+  remark: string
+  signature: string
+  sex: number
+  birthday: string
+  location: string
+  qid: string
+  level: number
+  avatar: string
+  regTime?: number          // QQ注册时间（时间戳）
+  // 群成员信息（仅群聊时有效）
+  groupCard?: string        // 群名片
+  groupRole?: 'owner' | 'admin' | 'member'  // 群角色
+  groupTitle?: string       // 群头衔
+  groupLevel?: number       // 群等级
+  joinTime?: number         // 入群时间
+  lastSpeakTime?: number    // 最后发言时间
+}
+
+// 获取用户详细资料 - 使用 ntUserApi
+export async function getUserProfile(uid?: string, uin?: string, groupCode?: string): Promise<UserProfile> {
+  let targetUid = uid
+  
+  // 如果只有 uin，先转换为 uid
+  if (!targetUid && uin) {
+    targetUid = await ntCall<string>('ntUserApi', 'getUidByUin', [uin])
+  }
+  
+  if (!targetUid) {
+    throw new Error('无法获取用户信息')
+  }
+  
+  // fetchUserDetailInfo 返回 { detail: { [uid]: UserDetailInfo } }（Map 已被序列化为对象）
+  const result = await ntCall<{ detail: Record<string, any> }>('ntUserApi', 'fetchUserDetailInfo', [targetUid])
+  const userInfo = result.detail[targetUid]
+  
+  if (!userInfo) {
+    throw new Error('用户不存在')
+  }
+  
+  // 获取 uin
+  let targetUin = uin || userInfo.uin
+  if (!targetUin) {
+    targetUin = await ntCall<string>('ntUserApi', 'getUinByUid', [targetUid])
+  }
+  
+  const simpleInfo = userInfo.simpleInfo
+  const coreInfo = simpleInfo?.coreInfo
+  const baseInfo = simpleInfo?.baseInfo
+  const commonExt = userInfo.commonExt
+  
+  // 获取 QQ 等级
+  let level = commonExt?.qqLevel?.level || 0
+  // 如果等级为 0，通过 pmhq.fetchUserLevel 获取
+  if (level === 0 && targetUin) {
+    try {
+      level = await ntCall<number>('pmhq', 'fetchUserLevel', [parseInt(targetUin)])
+    } catch {
+      // 获取等级失败，忽略
+    }
+  }
+  
+  const profile: UserProfile = {
+    uid: targetUid,
+    uin: targetUin || '',
+    nickname: coreInfo?.nick || '',
+    remark: coreInfo?.remark || '',
+    signature: baseInfo?.longNick || '',
+    sex: baseInfo?.sex ?? 0,
+    birthday: baseInfo?.birthday_year ? `${baseInfo.birthday_year}-${baseInfo.birthday_month}-${baseInfo.birthday_day}` : '',
+    location: '',
+    qid: baseInfo?.qid || '',
+    level,
+    regTime: commonExt?.regTime || undefined,
+    avatar: `https://q1.qlogo.cn/g?b=qq&nk=${targetUin}&s=640`
+  }
+  
+  // 如果是群聊，获取群成员信息
+  if (groupCode) {
+    try {
+      const memberInfo = await ntCall<{
+        nick: string
+        cardName?: string
+        role: number
+        memberSpecialTitle?: string
+        memberLevel?: number
+        memberRealLevel?: number
+        joinTime?: number
+        lastSpeakTime?: number
+      } | null>('ntGroupApi', 'getGroupMember', [groupCode, targetUid, false])
+      
+      if (memberInfo) {
+        profile.groupCard = memberInfo.cardName || ''
+        profile.groupRole = memberInfo.role === 4 ? 'owner' : memberInfo.role === 3 ? 'admin' : 'member'
+        profile.groupTitle = memberInfo.memberSpecialTitle || ''
+        // 优先使用 memberRealLevel，如果没有则使用 memberLevel
+        profile.groupLevel = memberInfo.memberRealLevel || memberInfo.memberLevel || 0
+        profile.joinTime = memberInfo.joinTime
+        profile.lastSpeakTime = memberInfo.lastSpeakTime
+      }
+    } catch {
+      // 获取群成员信息失败，忽略
+    }
+  }
+  
+  return profile
+}
+
 // 创建 SSE 连接
 export function createEventSource(onMessage: (event: any) => void, onError?: (error: any) => void): EventSource {
   // SSE doesn't support custom headers, so we pass the token as a query parameter

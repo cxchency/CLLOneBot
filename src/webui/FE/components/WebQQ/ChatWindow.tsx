@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react'
 import { createPortal } from 'react-dom'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { Users, Send, Image as ImageIcon, X, Loader2, AlertCircle, RefreshCw, Reply, Trash2 } from 'lucide-react'
+import { Users, Send, Image as ImageIcon, X, Loader2, AlertCircle, RefreshCw, Reply, Trash2, AtSign, Hand, User, Star, Moon, Sun, Crown } from 'lucide-react'
 import type { ChatSession, RawMessage, MessageElement } from '../../types/webqq'
-import { getMessages, sendMessage, uploadImage, formatMessageTime, isEmptyMessage, isValidImageFormat, getSelfUid, getSelfUin, getUserDisplayName, getVideoUrl, recallMessage } from '../../utils/webqqApi'
-import { useWebQQStore, hasVisitedChat, markChatVisited } from '../../stores/webqqStore'
+import { getMessages, sendMessage, uploadImage, formatMessageTime, isEmptyMessage, isValidImageFormat, getSelfUid, getSelfUin, getUserDisplayName, getVideoUrl, recallMessage, sendPoke, getUserProfile, UserProfile } from '../../utils/webqqApi'
+import { useWebQQStore, hasVisitedChat, markChatVisited, unmarkChatVisited } from '../../stores/webqqStore'
 import { getCachedMessages, setCachedMessages, appendCachedMessage, removeCachedMessage } from '../../utils/messageDb'
 import { getToken } from '../../utils/api'
 import { showToast } from '../Toast'
@@ -21,6 +21,19 @@ interface ChatWindowProps {
   session: ChatSession | null
   onShowMembers?: () => void
   onNewMessageCallback?: (callback: ((msg: RawMessage) => void) | null) => void
+  appendInputText?: string
+  onAppendInputTextConsumed?: () => void
+}
+
+// 头像右键菜单信息
+interface AvatarContextMenuInfo {
+  x: number
+  y: number
+  senderUid: string
+  senderUin: string
+  senderName: string
+  chatType: number
+  groupCode?: string
 }
 
 const getProxyImageUrl = (url: string | undefined): string => {
@@ -47,10 +60,257 @@ const MessageContextMenuContext = React.createContext<{
   showMenu: (e: React.MouseEvent, message: RawMessage) => void
 } | null>(null)
 
+// 头像右键菜单上下文
+const AvatarContextMenuContext = React.createContext<{
+  showMenu: (e: React.MouseEvent, info: Omit<AvatarContextMenuInfo, 'x' | 'y'>) => void
+} | null>(null)
+
 // 跳转到消息上下文
 const ScrollToMessageContext = React.createContext<{
   scrollToMessage: (msgId: string, msgSeq?: string) => void
 } | null>(null)
+
+// 用户资料卡组件
+const UserProfileCard: React.FC<{ 
+  profile: UserProfile | null
+  loading: boolean
+  position: { x: number; y: number }
+  onClose: () => void 
+}> = ({ profile, loading, position, onClose }) => {
+  if (!profile && !loading) return null
+  
+  // 计算位置，确保不超出屏幕
+  const cardWidth = 320
+  const cardHeight = 400
+  let left = position.x
+  let top = position.y
+  
+  // 右边界检查
+  if (left + cardWidth > window.innerWidth - 20) {
+    left = window.innerWidth - cardWidth - 20
+  }
+  // 左边界检查
+  if (left < 20) {
+    left = 20
+  }
+  // 底部边界检查 - 留出更多空间
+  if (top + cardHeight > window.innerHeight - 20) {
+    top = window.innerHeight - cardHeight - 20
+  }
+  // 顶部边界检查
+  if (top < 20) {
+    top = 20
+  }
+  
+  const getSexText = (sex: number) => {
+    if (sex === 1) return '男'
+    if (sex === 2) return '女'
+    return ''
+  }
+  
+  const getQAge = (regTime?: number) => {
+    if (!regTime) return ''
+    const regDate = new Date(regTime * 1000)
+    const now = new Date()
+    const years = now.getFullYear() - regDate.getFullYear()
+    const months = now.getMonth() - regDate.getMonth()
+    const totalYears = years + (months < 0 ? -1 : 0)
+    if (totalYears < 1) {
+      const totalMonths = years * 12 + months
+      return totalMonths > 0 ? `${totalMonths}个月` : '不足1个月'
+    }
+    return `${totalYears}年`
+  }
+  
+  const getRoleText = (role?: 'owner' | 'admin' | 'member') => {
+    if (role === 'owner') return '群主'
+    if (role === 'admin') return '管理员'
+    return ''
+  }
+  
+  const getRoleBadgeClass = (role?: 'owner' | 'admin' | 'member') => {
+    if (role === 'owner') return 'bg-amber-500 text-white'
+    if (role === 'admin') return 'bg-green-500 text-white'
+    return ''
+  }
+  
+  // QQ等级图标组件：4进制 - 4级=1星，16级=1月亮，64级=1太阳，256级=1皇冠，1024级=1金企鹅
+  const QQLevelIcons: React.FC<{ level: number }> = ({ level }) => {
+    // 计算各图标数量（4进制）
+    const stars = level % 4
+    const moons = Math.floor(level / 4) % 4
+    const suns = Math.floor(level / 16) % 4
+    const crowns = Math.floor(level / 64) % 4
+    const penguins = Math.floor(level / 256)
+    
+    const icons: React.ReactNode[] = []
+    
+    // 金企鹅（最高级）- 使用特殊样式
+    for (let i = 0; i < penguins; i++) {
+      icons.push(
+        <span key={`penguin-${i}`} className="text-amber-400 text-xs font-bold" title="金企鹅">🐧</span>
+      )
+    }
+    // 皇冠
+    for (let i = 0; i < crowns; i++) {
+      icons.push(<Crown key={`crown-${i}`} size={14} className="text-amber-500" />)
+    }
+    // 太阳
+    for (let i = 0; i < suns; i++) {
+      icons.push(<Sun key={`sun-${i}`} size={14} className="text-orange-400" />)
+    }
+    // 月亮
+    for (let i = 0; i < moons; i++) {
+      icons.push(<Moon key={`moon-${i}`} size={14} className="text-blue-400" />)
+    }
+    // 星星
+    for (let i = 0; i < stars; i++) {
+      icons.push(<Star key={`star-${i}`} size={14} className="text-yellow-400 fill-yellow-400" />)
+    }
+    
+    return <div className="flex items-center gap-0.5 flex-wrap">{icons}</div>
+  }
+  
+  const formatTime = (timestamp?: number) => {
+    if (!timestamp) return ''
+    return new Date(timestamp * 1000).toLocaleString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  }
+  
+  return createPortal(
+    <>
+      <div className="fixed inset-0 z-40" onClick={onClose} />
+      <div
+        className="fixed z-50 border border-theme-divider rounded-xl shadow-xl overflow-hidden bg-popup backdrop-blur-sm"
+        style={{ left, top, width: cardWidth }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {loading ? (
+          <div className="flex items-center justify-center h-40">
+            <Loader2 size={24} className="animate-spin text-pink-500" />
+          </div>
+        ) : profile && (
+          <>
+            {/* 头部：头像和基本信息并排 */}
+            <div className="bg-gradient-to-r from-pink-400 to-amber-300 p-4">
+              <div className="flex items-start gap-4">
+                <img 
+                  src={profile.avatar} 
+                  alt={profile.nickname}
+                  className="w-16 h-16 rounded-full border-3 border-white/80 object-cover flex-shrink-0"
+                />
+                <div className="flex-1 min-w-0 text-white pt-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-bold text-lg truncate">{profile.nickname}</span>
+                    {profile.groupRole && getRoleText(profile.groupRole) && (
+                      <span className={`text-xs px-1.5 py-0.5 rounded flex-shrink-0 ${getRoleBadgeClass(profile.groupRole)}`}>
+                        {getRoleText(profile.groupRole)}
+                      </span>
+                    )}
+                  </div>
+                  {profile.remark && profile.remark !== profile.nickname && (
+                    <div className="text-white/80 text-sm truncate mb-1">备注: {profile.remark}</div>
+                  )}
+                  <div className="text-white/90 text-sm">{profile.uin}</div>
+                  {profile.qid && (
+                    <div className="text-white/70 text-xs mt-0.5">QID: {profile.qid}</div>
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            {/* 内容区域 */}
+            <div className="p-4">
+              {/* 个性签名 */}
+              {profile.signature && (
+                <div className="text-theme-secondary text-sm mb-3 bg-theme-item/50 rounded-lg px-3 py-2 line-clamp-2">
+                  {profile.signature}
+                </div>
+              )}
+              
+              {/* 基本信息 */}
+              <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                {getSexText(profile.sex) && (
+                  <>
+                    <span className="text-theme-hint">性别</span>
+                    <span className="text-theme">{getSexText(profile.sex)}</span>
+                  </>
+                )}
+                {profile.birthday && profile.birthday !== '0-0-0' && (
+                  <>
+                    <span className="text-theme-hint">生日</span>
+                    <span className="text-theme">{profile.birthday}</span>
+                  </>
+                )}
+                {getQAge(profile.regTime) && (
+                  <>
+                    <span className="text-theme-hint">Q龄</span>
+                    <span className="text-theme">{getQAge(profile.regTime)}</span>
+                  </>
+                )}
+                {profile.level > 0 && (
+                  <>
+                    <span className="text-theme-hint">等级</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-theme">Lv.{profile.level}</span>
+                      <QQLevelIcons level={profile.level} />
+                    </div>
+                  </>
+                )}
+              </div>
+              
+              {/* 群成员信息（仅群聊时显示） */}
+              {(profile.groupCard || profile.groupTitle || profile.groupLevel) && (
+                <>
+                  <div className="border-t border-theme-divider my-3" />
+                  <div className="text-xs text-theme-hint mb-2">群信息</div>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                    {profile.groupCard && (
+                      <>
+                        <span className="text-theme-hint">群名片</span>
+                        <span className="text-theme truncate">{profile.groupCard}</span>
+                      </>
+                    )}
+                    {profile.groupTitle && (
+                      <>
+                        <span className="text-theme-hint">群头衔</span>
+                        <span className="text-pink-500">{profile.groupTitle}</span>
+                      </>
+                    )}
+                    {profile.groupLevel !== undefined && profile.groupLevel > 0 && (
+                      <>
+                        <span className="text-theme-hint">群等级</span>
+                        <span className="text-theme">Lv.{profile.groupLevel}</span>
+                      </>
+                    )}
+                    {profile.joinTime && (
+                      <>
+                        <span className="text-theme-hint">入群时间</span>
+                        <span className="text-theme">{formatTime(profile.joinTime)}</span>
+                      </>
+                    )}
+                    {profile.lastSpeakTime && (
+                      <>
+                        <span className="text-theme-hint">最后发言</span>
+                        <span className="text-theme">{formatTime(profile.lastSpeakTime)}</span>
+                      </>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    </>,
+    document.body
+  )
+}
 
 // 图片预览弹窗组件
 const ImagePreviewModal: React.FC<{ url: string | null; onClose: () => void }> = ({ url, onClose }) => {
@@ -446,6 +706,7 @@ const RawMessageBubble = memo<{ message: RawMessage; allMessages: RawMessage[]; 
   const senderAvatar = `https://q1.qlogo.cn/g?b=qq&nk=${message.senderUin}&s=640`
   const timestamp = parseInt(message.msgTime) * 1000
   const contextMenuContext = React.useContext(MessageContextMenuContext)
+  const avatarContextMenuContext = React.useContext(AvatarContextMenuContext)
   const scrollToMessageContext = React.useContext(ScrollToMessageContext)
   
   if (!message.elements || !Array.isArray(message.elements)) return null
@@ -467,6 +728,18 @@ const RawMessageBubble = memo<{ message: RawMessage; allMessages: RawMessage[]; 
     contextMenuContext?.showMenu(e, message)
   }
 
+  const handleAvatarContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    avatarContextMenuContext?.showMenu(e, {
+      senderUid: message.senderUid,
+      senderUin: message.senderUin,
+      senderName,
+      chatType: message.chatType,
+      groupCode: message.chatType === 2 ? message.peerUin : undefined
+    })
+  }
+
   const handleReplyClick = () => {
     if (replyElement) {
       scrollToMessageContext?.scrollToMessage(replyElement.replayMsgId, replyElement.replayMsgSeq)
@@ -475,7 +748,13 @@ const RawMessageBubble = memo<{ message: RawMessage; allMessages: RawMessage[]; 
 
   return (
     <div className={`flex gap-2 ${isSelf ? 'flex-row-reverse' : ''} ${isHighlighted ? 'animate-pulse bg-pink-100 dark:bg-pink-900/30 rounded-lg -mx-2 px-2' : ''}`}>
-      <img src={senderAvatar} alt={senderName} loading="lazy" className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
+      <img 
+        src={senderAvatar} 
+        alt={senderName} 
+        loading="lazy" 
+        className="w-8 h-8 rounded-full object-cover flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity" 
+        onContextMenu={handleAvatarContextMenu}
+      />
       <div className={`flex flex-col ${isSelf ? 'items-end' : 'items-start'} max-w-[70%]`}>
         <span className="text-xs text-theme-hint mb-1">{senderName}</span>
         <div 
@@ -542,7 +821,7 @@ const TempMessageBubble = memo<{ message: TempMessage; onRetry: () => void }>(({
 // 虚拟列表消息项
 type MessageItem = { type: 'raw'; data: RawMessage } | { type: 'temp'; data: TempMessage }
 
-const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMessageCallback }) => {
+const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMessageCallback, appendInputText, onAppendInputTextConsumed }) => {
   const [messages, setMessages] = useState<RawMessage[]>([])
   const [tempMessages, setTempMessages] = useState<TempMessage[]>([])
   const [loading, setLoading] = useState(false)
@@ -555,6 +834,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
   const [previewVideoUrl, setPreviewVideoUrl] = useState<{ chatType: number; peerUid: string; msgId: string; elementId: string } | null>(null)
   const [replyTo, setReplyTo] = useState<RawMessage | null>(null)
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; message: RawMessage } | null>(null)
+  const [avatarContextMenu, setAvatarContextMenu] = useState<AvatarContextMenuInfo | null>(null)
+  const [userProfile, setUserProfile] = useState<{ profile: UserProfile | null; loading: boolean; position: { x: number; y: number } } | null>(null)
   const [isScrollReady, setIsScrollReady] = useState(false)
   
   const imagePreviewContextValue = useMemo(() => ({
@@ -569,6 +850,12 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
   const messageContextMenuValue = useMemo(() => ({
     showMenu: (e: React.MouseEvent, message: RawMessage) => {
       setContextMenu({ x: e.clientX, y: e.clientY, message })
+    }
+  }), [])
+  
+  const avatarContextMenuValue = useMemo(() => ({
+    showMenu: (e: React.MouseEvent, info: Omit<AvatarContextMenuInfo, 'x' | 'y'>) => {
+      setAvatarContextMenu({ x: e.clientX, y: e.clientY, ...info })
     }
   }), [])
   
@@ -587,6 +874,15 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
   useEffect(() => {
     sessionRef.current = session
   }, [session])
+
+  // 处理从外部追加文本到输入框
+  useEffect(() => {
+    if (appendInputText) {
+      setInputText(prev => prev + appendInputText)
+      textareaRef.current?.focus()
+      onAppendInputTextConsumed?.()
+    }
+  }, [appendInputText, onAppendInputTextConsumed])
 
   // 合并消息列表
   const allItems = useMemo<MessageItem[]>(() => {
@@ -695,7 +991,9 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
           return newMessages
         })
         setTempMessages(prev => prev.filter(t => t.status !== 'sending'))
-        shouldScrollRef.current = true
+        // 只有当滚动条在底部附近时才自动滚动到底部
+        // shouldScrollRef 已经在 handleScroll 中根据滚动位置更新
+        // 这里不再强制设置为 true
       }
       onNewMessageCallback(handleNewMessage)
     }
@@ -710,6 +1008,10 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
   const loadMessages = useCallback(async (beforeMsgSeq?: string) => {
     if (!session) return
 
+    // 记录发起请求时的 session 信息，用于后续验证
+    const requestChatType = session.chatType
+    const requestPeerId = session.peerId
+
     if (beforeMsgSeq) {
       setLoadingMore(true)
     } else {
@@ -722,22 +1024,48 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
     }
 
     try {
-      const result = await getMessages(session.chatType, session.peerId, beforeMsgSeq)
+      const result = await getMessages(requestChatType, requestPeerId, beforeMsgSeq)
+      
+      // 检查当前 session 是否仍然匹配
+      const currentSession = sessionRef.current
+      const sessionChanged = !currentSession || currentSession.chatType !== requestChatType || currentSession.peerId !== requestPeerId
+      
       const validMessages = result.messages.filter((msg): msg is RawMessage => 
         msg !== null && msg !== undefined && msg.elements && Array.isArray(msg.elements)
       )
+      
+      if (sessionChanged) {
+        // session 已变更，取消该聊天的访问标记，下次打开时会重新拉取
+        unmarkChatVisited(requestChatType, requestPeerId)
+        // 仍然需要将结果存入缓存，以便切换回来时使用
+        const sessionKey = getSessionKey(requestChatType, requestPeerId)
+        const existingCache = messageCacheRef.current.get(sessionKey) || []
+        const existingIds = new Set(existingCache.map(m => m.msgId))
+        const newMsgs = validMessages.filter(m => !existingIds.has(m.msgId))
+        const merged = beforeMsgSeq ? [...newMsgs, ...existingCache] : [...existingCache, ...newMsgs]
+        merged.sort((a, b) => parseInt(a.msgTime) - parseInt(b.msgTime))
+        messageCacheRef.current.set(sessionKey, merged)
+        setCachedMessages(requestChatType, requestPeerId, merged)
+        // 不更新 UI 状态，因为用户已切换到其他聊天
+        return
+      }
       
       setMessages(prev => {
         const existingIds = new Set(prev.map(m => m.msgId))
         const newMsgs = validMessages.filter(m => !existingIds.has(m.msgId))
         const merged = beforeMsgSeq ? [...newMsgs, ...prev] : [...prev, ...newMsgs]
         merged.sort((a, b) => parseInt(a.msgTime) - parseInt(b.msgTime))
-        setCachedMessages(session.chatType, session.peerId, merged)
+        setCachedMessages(requestChatType, requestPeerId, merged)
         return merged
       })
       setHasMore(result.hasMore)
     } catch (e: any) {
       scrollToMsgIdRef.current = null
+      // 同样检查 session 是否匹配，避免显示错误的 toast
+      const currentSession = sessionRef.current
+      if (!currentSession || currentSession.chatType !== requestChatType || currentSession.peerId !== requestPeerId) {
+        return
+      }
       if (!beforeMsgSeq) {
         showToast('加载消息失败', 'error')
       } else {
@@ -772,23 +1100,32 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
   useEffect(() => {
     if (session) {
       const sessionKey = getSessionKey(session.chatType, session.peerId)
+      const currentChatType = session.chatType
+      const currentPeerId = session.peerId
       
-      // 先从内存缓存读取，避免空白闪烁
+      // 先从内存缓存读取，如果没有则立即清空，避免显示上一个聊天的消息
       const cachedInMemory = messageCacheRef.current.get(sessionKey)
       if (cachedInMemory && cachedInMemory.length > 0) {
         setMessages(cachedInMemory)
+      } else {
+        // 没有缓存时立即清空，防止显示其他聊天的消息
+        setMessages([])
       }
       
       // 总是从 IndexedDB 加载最新数据（SSE 消息会写入 IndexedDB）
-      getCachedMessages(session.chatType, session.peerId).then(cachedMessages => {
+      getCachedMessages(currentChatType, currentPeerId).then(cachedMessages => {
+        // 检查 session 是否仍然匹配
+        const currentSession = sessionRef.current
+        if (!currentSession || currentSession.chatType !== currentChatType || currentSession.peerId !== currentPeerId) {
+          return // session 已变更，丢弃结果
+        }
+        
         if (cachedMessages && cachedMessages.length > 0) {
           const validMessages = cachedMessages.filter(m => m.elements && Array.isArray(m.elements))
           if (validMessages.length > 0) {
             messageCacheRef.current.set(sessionKey, validMessages)
             setMessages(validMessages)
           }
-        } else if (!cachedInMemory || cachedInMemory.length === 0) {
-          setMessages([])
         }
       })
       
@@ -969,6 +1306,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
     <ImagePreviewContext.Provider value={imagePreviewContextValue}>
     <VideoPreviewContext.Provider value={videoPreviewContextValue}>
     <MessageContextMenuContext.Provider value={messageContextMenuValue}>
+    <AvatarContextMenuContext.Provider value={avatarContextMenuValue}>
     <ScrollToMessageContext.Provider value={scrollToMessageContextValue}>
       <div className="flex flex-col h-full">
         <div className="flex items-center justify-between px-4 py-3 border-b border-theme-divider bg-theme-card">
@@ -1071,8 +1409,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
         <>
           <div className="fixed inset-0 z-40" onClick={() => setContextMenu(null)} onContextMenu={(e) => { e.preventDefault(); setContextMenu(null) }} />
           <div
-            className="fixed z-50 bg-theme-card border border-theme-divider rounded-lg shadow-lg py-1 min-w-[100px]"
-            style={{ left: contextMenu.x, top: contextMenu.y }}
+            className="fixed z-50 bg-popup backdrop-blur-sm border border-theme-divider rounded-lg shadow-lg py-1 min-w-[100px]"
+            style={{ left: contextMenu.x, top: Math.min(contextMenu.y, window.innerHeight - 120) }}
             onContextMenu={(e) => e.preventDefault()}
           >
             <button
@@ -1144,9 +1482,89 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
         document.body
       )}
       
+      {/* 头像右键菜单 */}
+      {avatarContextMenu && createPortal(
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setAvatarContextMenu(null)} onContextMenu={(e) => { e.preventDefault(); setAvatarContextMenu(null) }} />
+          <div
+            className="fixed z-50 bg-popup backdrop-blur-sm border border-theme-divider rounded-lg shadow-lg py-1 min-w-[120px]"
+            style={{ left: avatarContextMenu.x, top: Math.min(avatarContextMenu.y, window.innerHeight - 150) }}
+            onContextMenu={(e) => e.preventDefault()}
+          >
+            {/* 群聊才显示 @ta */}
+            {avatarContextMenu.chatType === 2 && (
+              <button
+                onClick={() => {
+                  // 在输入框添加 @消息段
+                  const atText = `@${avatarContextMenu.senderName} `
+                  setInputText(prev => prev + atText)
+                  setAvatarContextMenu(null)
+                  textareaRef.current?.focus()
+                }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-theme hover:bg-theme-item-hover transition-colors"
+              >
+                <AtSign size={14} />
+                召唤ta
+              </button>
+            )}
+            <button
+              onClick={async () => {
+                const info = avatarContextMenu
+                setAvatarContextMenu(null)
+                try {
+                  await sendPoke(
+                    info.chatType,
+                    Number(info.senderUin),
+                    info.groupCode ? Number(info.groupCode) : undefined
+                  )
+                  showToast('戳一戳成功', 'success')
+                } catch (e: any) {
+                  showToast(e.message || '戳一戳失败', 'error')
+                }
+              }}
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-theme hover:bg-theme-item-hover transition-colors"
+            >
+              <Hand size={14} />
+              戳一戳
+            </button>
+            <button
+              onClick={async () => {
+                const info = avatarContextMenu
+                setAvatarContextMenu(null)
+                // 显示加载状态
+                setUserProfile({ profile: null, loading: true, position: { x: info.x, y: info.y } })
+                try {
+                  const profile = await getUserProfile(info.senderUid, info.senderUin, info.groupCode)
+                  setUserProfile({ profile, loading: false, position: { x: info.x, y: info.y } })
+                } catch (e: any) {
+                  showToast(e.message || '获取资料失败', 'error')
+                  setUserProfile(null)
+                }
+              }}
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-theme hover:bg-theme-item-hover transition-colors"
+            >
+              <User size={14} />
+              查看资料
+            </button>
+          </div>
+        </>,
+        document.body
+      )}
+      
+      {/* 用户资料卡 */}
+      {userProfile && (
+        <UserProfileCard
+          profile={userProfile.profile}
+          loading={userProfile.loading}
+          position={userProfile.position}
+          onClose={() => setUserProfile(null)}
+        />
+      )}
+      
       <ImagePreviewModal url={previewImageUrl} onClose={() => setPreviewImageUrl(null)} />
       <VideoPreviewModal videoInfo={previewVideoUrl} onClose={() => setPreviewVideoUrl(null)} />
     </ScrollToMessageContext.Provider>
+    </AvatarContextMenuContext.Provider>
     </MessageContextMenuContext.Provider>
     </VideoPreviewContext.Provider>
     </ImagePreviewContext.Provider>

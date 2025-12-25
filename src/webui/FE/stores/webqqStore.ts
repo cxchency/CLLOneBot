@@ -39,6 +39,11 @@ export const markChatVisited = (chatType: number, peerId: string) => {
   visitedChats.add(`${chatType}_${peerId}`)
 }
 
+// 取消已访问标记（用于加载中断时）
+export const unmarkChatVisited = (chatType: number, peerId: string) => {
+  visitedChats.delete(`${chatType}_${peerId}`)
+}
+
 interface WebQQState {
   // 联系人数据
   friendCategories: FriendCategory[]

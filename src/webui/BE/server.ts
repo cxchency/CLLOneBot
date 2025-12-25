@@ -668,14 +668,15 @@ export class WebUIServer extends Service {
           return
         }
 
-        // 白名单：只允许调用 inject 中声明的服务
-        const allowedServices = ['ntUserApi', 'ntGroupApi', 'ntFriendApi', 'ntFileApi', 'ntMsgApi']
+        // 白名单：只允许调用 inject 中声明的服务 + pmhq
+        const allowedServices = ['ntUserApi', 'ntGroupApi', 'ntFriendApi', 'ntFileApi', 'ntMsgApi', 'pmhq']
         if (!allowedServices.includes(service)) {
           res.status(400).json({ success: false, message: `不支持的服务: ${service}` })
           return
         }
 
-        const serviceInstance = (this.ctx as any)[service]
+        // pmhq 是单例，不在 ctx 中
+        const serviceInstance = service === 'pmhq' ? pmhq : (this.ctx as any)[service]
         if (!serviceInstance) {
           res.status(400).json({ success: false, message: `服务 ${service} 未注入` })
           return

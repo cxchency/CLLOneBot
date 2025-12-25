@@ -220,6 +220,15 @@
   .bg-selected {
     background: var(--bg-selected);
   }
+
+  /* 弹出菜单和卡片背景 */
+  .bg-popup {
+    background: rgba(255, 255, 255, 0.9);
+  }
+  
+  .dark .bg-popup {
+    background: rgba(23, 23, 23, 0.95);
+  }
   
   .border-divider {
     border-color: var(--border-divider);

@@ -342,8 +342,8 @@ const RecentList: React.FC<RecentListProps> = ({ items, unreadCounts, selectedPe
             onContextMenu={(e) => { e.preventDefault(); closeContextMenu() }}
           />
           <div
-            className="fixed z-50 bg-theme-card border border-theme-divider rounded-lg shadow-lg py-1 min-w-[120px]"
-            style={{ left: contextMenu.x, top: contextMenu.y }}
+            className="fixed z-50 bg-popup backdrop-blur-sm border border-theme-divider rounded-lg shadow-lg py-1 min-w-[120px]"
+            style={{ left: contextMenu.x, top: Math.min(contextMenu.y, window.innerHeight - 100) }}
             onContextMenu={(e) => e.preventDefault()}
           >
             <button
