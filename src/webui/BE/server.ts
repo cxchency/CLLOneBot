@@ -717,6 +717,79 @@ export class WebUIServer extends Service {
       }
     })
 
+    // 获取用户信息（通过 uid）- 保留兼容，后续可删除
+    this.app.get('/api/webqq/user-info', async (req, res) => {
+      try {
+        const { uid } = req.query as { uid: string }
+
+        if (!uid) {
+          res.status(400).json({ success: false, message: '缺少 uid 参数' })
+          return
+        }
+
+        const userInfo = await this.ctx.ntUserApi.getUserSimpleInfo(uid, false)
+        const uin = await this.ctx.ntUserApi.getUinByUid(uid)
+        
+        res.json({
+          success: true,
+          data: {
+            uid: userInfo.uid,
+            uin: uin || '',
+            nickname: userInfo.coreInfo?.nick || '',
+            remark: userInfo.coreInfo?.remark || ''
+          }
+        })
+      } catch (e: any) {
+        this.ctx.logger.error('获取用户信息失败:', e)
+        res.status(500).json({ success: false, message: '获取用户信息失败', error: e.message })
+      }
+    })
+
+    // 通用 NT API 调用接口
+    this.app.post('/api/webqq/nt-call', async (req, res) => {
+      try {
+        const { service, method, args } = req.body as {
+          service: string
+          method: string
+          args: any[]
+        }
+
+        if (!service || !method) {
+          res.status(400).json({ success: false, message: '缺少 service 或 method 参数' })
+          return
+        }
+
+        // 白名单：只允许调用特定的服务
+        const allowedServices: Record<string, any> = {
+          'ntUserApi': this.ctx.ntUserApi,
+          'ntGroupApi': this.ctx.ntGroupApi,
+          'ntFriendApi': this.ctx.ntFriendApi,
+        }
+
+        const serviceInstance = allowedServices[service]
+        if (!serviceInstance) {
+          res.status(400).json({ success: false, message: `不支持的服务: ${service}` })
+          return
+        }
+
+        const methodFunc = serviceInstance[method]
+        if (typeof methodFunc !== 'function') {
+          res.status(400).json({ success: false, message: `服务 ${service} 没有方法: ${method}` })
+          return
+        }
+
+        const result = await methodFunc.apply(serviceInstance, args || [])
+        
+        // 处理 Map 类型的返回值
+        const serializedResult = this.serializeResult(result)
+        
+        res.json({ success: true, data: serializedResult })
+      } catch (e: any) {
+        this.ctx.logger.error('NT API 调用失败:', e)
+        res.status(500).json({ success: false, message: 'NT API 调用失败', error: e.message })
+      }
+    })
+
     // SSE 实时消息推送
     this.app.get('/api/webqq/events', (req: Request, res: Response) => {
       res.setHeader('Content-Type', 'text/event-stream')
@@ -827,6 +900,29 @@ export class WebUIServer extends Service {
     }
   }
 
+  // 序列化结果，处理 Map 等特殊类型
+  private serializeResult(result: any): any {
+    if (result === null || result === undefined) return result
+    if (result instanceof Map) {
+      const obj: Record<string, any> = {}
+      for (const [key, value] of result) {
+        obj[String(key)] = this.serializeResult(value)
+      }
+      return obj
+    }
+    if (Array.isArray(result)) {
+      return result.map(item => this.serializeResult(item))
+    }
+    if (typeof result === 'object') {
+      const obj: Record<string, any> = {}
+      for (const [key, value] of Object.entries(result)) {
+        obj[key] = this.serializeResult(value)
+      }
+      return obj
+    }
+    return result
+  }
+
   // 广播消息到所有 SSE 客户端
   public broadcastMessage(event: string, data: any) {
     const message = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`
@@ -840,8 +936,17 @@ export class WebUIServer extends Service {
     this.ctx.logger.info('WebQQ: 设置消息事件监听')
     
     // 监听新消息事件 - 直接推送原始 RawMessage
-    this.ctx.on('nt/message-created', (message: RawMessage) => {
+    this.ctx.on('nt/message-created', async (message: RawMessage) => {
       if (this.sseClients.size === 0) return
+      
+      // 补充 peerUin（私聊时可能为空或为 0）
+      if (message.chatType === ChatType.C2C && (!message.peerUin || message.peerUin === '0') && message.peerUid) {
+        const uin = await this.ctx.ntUserApi.getUinByUid(message.peerUid)
+        if (uin) {
+          message.peerUin = uin
+        }
+      }
+      
       this.broadcastMessage('message', {
         type: 'message-created',
         data: message
@@ -853,8 +958,8 @@ export class WebUIServer extends Service {
       this.ctx.logger.info('WebQQ: 收到 nt/message-sent 事件, sseClients:', this.sseClients.size)
       if (this.sseClients.size === 0) return
       
-      // 补充 peerUin（私聊时可能为空）
-      if (message.chatType === ChatType.C2C && !message.peerUin && message.peerUid) {
+      // 补充 peerUin（私聊时可能为空或为 0）
+      if (message.chatType === ChatType.C2C && (!message.peerUin || message.peerUin === '0') && message.peerUid) {
         const uin = await this.ctx.ntUserApi.getUinByUid(message.peerUid)
         if (uin) {
           message.peerUin = uin

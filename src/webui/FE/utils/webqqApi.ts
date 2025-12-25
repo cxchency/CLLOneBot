@@ -127,6 +127,47 @@ export async function getGroupMembers(groupCode: string): Promise<GroupMemberIte
   return response.data || []
 }
 
+// 获取用户信息（通过 uid）
+export async function getUserInfo(uid: string): Promise<{ uid: string; uin: string; nickname: string; remark: string }> {
+  const response = await apiFetch<{ uid: string; uin: string; nickname: string; remark: string }>(`/api/webqq/user-info?uid=${encodeURIComponent(uid)}`)
+  if (!response.success) {
+    throw new Error(response.message || '获取用户信息失败')
+  }
+  return response.data!
+}
+
+// 通用 NT API 调用
+export async function ntCall<T = any>(service: string, method: string, args: any[] = []): Promise<T> {
+  const response = await apiFetch<T>('/api/webqq/nt-call', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ service, method, args })
+  })
+  if (!response.success) {
+    throw new Error(response.message || 'NT API 调用失败')
+  }
+  return response.data!
+}
+
+// 获取用户显示名称（群聊用群名片，私聊用备注）
+export async function getUserDisplayName(uid: string, groupCode?: string): Promise<string> {
+  try {
+    if (groupCode) {
+      // 群聊：获取群成员信息，优先显示群名片
+      const members = await ntCall<{ result: { infos: Record<string, any> } }>('ntGroupApi', 'getGroupMembers', [groupCode])
+      const memberInfo = members?.result?.infos?.[uid]
+      if (memberInfo) {
+        return memberInfo.cardName || memberInfo.nick || '未知用户'
+      }
+    }
+    // 私聊或群成员未找到：获取好友信息，优先显示备注
+    const userInfo = await ntCall<{ coreInfo?: { nick?: string; remark?: string } }>('ntUserApi', 'getUserSimpleInfo', [uid, false])
+    return userInfo?.coreInfo?.remark || userInfo?.coreInfo?.nick || '未知用户'
+  } catch {
+    return '未知用户'
+  }
+}
+
 // 创建 SSE 连接
 export function createEventSource(onMessage: (event: any) => void, onError?: (error: any) => void): EventSource {
   // SSE doesn't support custom headers, so we pass the token as a query parameter

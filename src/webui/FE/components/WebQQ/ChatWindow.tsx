@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { Users, Send, Image as ImageIcon, X, Loader2, AlertCircle, RefreshCw, Reply } from 'lucide-react'
 import type { ChatSession, RawMessage, MessageElement } from '../../types/webqq'
-import { getMessages, sendMessage, uploadImage, formatMessageTime, isEmptyMessage, isValidImageFormat, getSelfUid, getSelfUin } from '../../utils/webqqApi'
+import { getMessages, sendMessage, uploadImage, formatMessageTime, isEmptyMessage, isValidImageFormat, getSelfUid, getSelfUin, getUserDisplayName } from '../../utils/webqqApi'
 import { useWebQQStore, hasVisitedChat, markChatVisited } from '../../stores/webqqStore'
 import { getToken } from '../../utils/api'
 import { showToast } from '../Toast'
@@ -124,10 +124,139 @@ const MessageElementRenderer = memo<{ element: MessageElement }>(({ element }) =
   if (element.fileElement) return <span>[文件: {element.fileElement.fileName}]</span>
   if (element.pttElement) return <span>[语音消息]</span>
   if (element.videoElement) return <span>[视频消息]</span>
+  if (element.grayTipElement) {
+    // 解析戳一戳等灰色提示
+    const grayTip = element.grayTipElement
+    if (grayTip.jsonGrayTipElement?.jsonStr) {
+      try {
+        const json = JSON.parse(grayTip.jsonGrayTipElement.jsonStr)
+        // 戳一戳消息
+        if (json.items) {
+          const text = json.items.map((item: any) => item.txt || '').join('')
+          return <span className="text-theme-hint text-xs">{text || '[戳一戳]'}</span>
+        }
+      } catch {
+        // ignore
+      }
+    }
+    return <span className="text-theme-hint text-xs">[系统提示]</span>
+  }
+  if (element.arkElement) return <span>[卡片消息]</span>
+  if (element.marketFaceElement) return <span>[{element.marketFaceElement.faceName || '表情包'}]</span>
+  // 未知类型，返回 null 不渲染
   return null
 })
 
+// 检查元素是否有有效内容
+const hasValidContent = (element: MessageElement): boolean => {
+  return !!(
+    element.textElement ||
+    element.picElement ||
+    element.fileElement ||
+    element.pttElement ||
+    element.videoElement ||
+    element.faceElement ||
+    element.grayTipElement ||
+    element.arkElement ||
+    element.marketFaceElement
+  )
+}
+
+// 检查消息是否是系统提示（如戳一戳）
+const isSystemTipMessage = (message: RawMessage): boolean => {
+  if (!message.elements || message.elements.length === 0) return false
+  // 只有 grayTipElement 的消息是系统提示
+  return message.elements.every(el => el.grayTipElement || el.replyElement)
+}
+
+// 解析戳一戳 JSON 中的 items，返回需要解析的 uid 列表
+const parseGrayTipItems = (message: RawMessage): { items: any[]; hasUid: boolean } | null => {
+  for (const el of message.elements) {
+    if (el.grayTipElement?.jsonGrayTipElement?.jsonStr) {
+      try {
+        const json = JSON.parse(el.grayTipElement.jsonGrayTipElement.jsonStr)
+        if (json.items) {
+          const hasUid = json.items.some((item: any) => item.type === 'qq' && item.uid)
+          return { items: json.items, hasUid }
+        }
+      } catch {
+        // ignore
+      }
+    }
+  }
+  return null
+}
+
+// 系统提示消息组件（居中显示）
+const SystemTipMessage = memo<{ message: RawMessage; groupCode?: string }>(({ message, groupCode }) => {
+  const [content, setContent] = useState<React.ReactNode>('[系统提示]')
+  const selfUid = getSelfUid()
+  
+  useEffect(() => {
+    const parsed = parseGrayTipItems(message)
+    if (!parsed) {
+      // 尝试解析 XML
+      for (const el of message.elements) {
+        if (el.grayTipElement?.xmlElement?.content) {
+          setContent(el.grayTipElement.xmlElement.content.replace(/<[^>]+>/g, ''))
+          return
+        }
+      }
+      setContent('[系统提示]')
+      return
+    }
+    
+    const { items, hasUid } = parsed
+    
+    if (!hasUid) {
+      // 没有 uid，直接拼接文本
+      const result = items.map((item: any) => item.txt || '').join('')
+      setContent(result || '[系统提示]')
+      return
+    }
+    
+    // 有 uid，需要异步获取昵称
+    const resolveContent = async () => {
+      const parts: React.ReactNode[] = []
+      let keyIndex = 0
+      for (const item of items) {
+        if (item.type === 'qq' && item.uid) {
+          // 检查是否是自己
+          if (item.uid === selfUid) {
+            parts.push(<span key={keyIndex++} className="text-blue-500">你</span>)
+          } else {
+            const name = await getUserDisplayName(item.uid, groupCode)
+            parts.push(<span key={keyIndex++} className="text-blue-500">{name}</span>)
+          }
+        } else if (item.type === 'nor' && item.txt) {
+          parts.push(<span key={keyIndex++}>{item.txt}</span>)
+        } else if (item.type === 'img') {
+          // 图片类型，跳过
+        }
+      }
+      setContent(parts.length > 0 ? parts : '[系统提示]')
+    }
+    
+    resolveContent()
+  }, [message, selfUid, groupCode])
+  
+  return (
+    <div className="flex justify-center py-2">
+      <span className="text-xs text-theme-hint bg-theme-item/50 px-3 py-1 rounded-full">
+        {content}
+      </span>
+    </div>
+  )
+})
+
 const RawMessageBubble = memo<{ message: RawMessage; allMessages: RawMessage[] }>(({ message, allMessages }) => {
+  // 如果是系统提示消息，使用不同的渲染方式
+  if (isSystemTipMessage(message)) {
+    // 群聊时传入群号
+    const groupCode = message.chatType === 2 ? message.peerUin : undefined
+    return <SystemTipMessage message={message} groupCode={groupCode} />
+  }
+  
   const selfUid = getSelfUid()
   const isSelf = selfUid ? message.senderUid === selfUid : false
   const senderName = message.sendMemberName || message.sendNickName || message.senderUin
@@ -140,6 +269,10 @@ const RawMessageBubble = memo<{ message: RawMessage; allMessages: RawMessage[] }
   // 分离 reply 元素和其他元素
   const replyElement = message.elements.find(el => el.replyElement)?.replyElement
   const otherElements = message.elements.filter(el => !el.replyElement)
+  
+  // 检查是否有有效内容，如果没有则不渲染
+  const hasContent = otherElements.some(hasValidContent) || replyElement
+  if (!hasContent) return null
 
   // 查找被引用的原消息
   const replySourceMsg = replyElement ? allMessages.find(m => m.msgId === replyElement.replayMsgId || m.msgSeq === replyElement.replayMsgSeq) : null
