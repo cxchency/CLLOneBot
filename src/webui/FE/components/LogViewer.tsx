@@ -103,28 +103,28 @@ const LogViewer: React.FC = () => {
     switch (type.toLowerCase()) {
       case 'error':
         return {
-          bg: 'bg-red-50/50',
-          badge: 'text-red-600 bg-red-100/70',
+          bg: 'bg-red-50/50 dark:bg-red-900/20',
+          badge: 'text-red-600 dark:text-red-400 bg-red-100/70 dark:bg-red-900/50',
         }
       case 'warn':
         return {
-          bg: 'bg-amber-50/50',
-          badge: 'text-amber-600 bg-amber-100/70',
+          bg: 'bg-amber-50/50 dark:bg-amber-900/20',
+          badge: 'text-amber-600 dark:text-amber-400 bg-amber-100/70 dark:bg-amber-900/50',
         }
       case 'info':
         return {
-          bg: 'bg-blue-50/50',
-          badge: 'text-pink-500 bg-pink-100/70',
+          bg: 'bg-blue-50/50 dark:bg-blue-900/20',
+          badge: 'text-pink-500 dark:text-pink-400 bg-pink-100/70 dark:bg-pink-900/50',
         }
       case 'debug':
         return {
-          bg: 'bg-gray-50/50',
-          badge: 'text-gray-500 bg-gray-100/70',
+          bg: 'bg-gray-50/50 dark:bg-neutral-700/50',
+          badge: 'text-gray-500 dark:text-neutral-400 bg-gray-100/70 dark:bg-neutral-600/50',
         }
       default:
         return {
-          bg: 'bg-green-50/50',
-          badge: 'text-green-600 bg-green-100/70',
+          bg: 'bg-green-50/50 dark:bg-green-900/20',
+          badge: 'text-green-600 dark:text-green-400 bg-green-100/70 dark:bg-green-900/50',
         }
     }
   }
@@ -164,20 +164,20 @@ const LogViewer: React.FC = () => {
               <Terminal size={20} className="text-white" />
             </div>
             <div>
-              <h3 className="text-base font-semibold text-gray-800">实时日志</h3>
+              <h3 className="text-base font-semibold text-theme">实时日志</h3>
               <div className="flex items-center gap-2 text-xs">
-                <span className={`flex items-center gap-1 px-2 py-0.5 rounded-full ${connected ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+                <span className={`flex items-center gap-1 px-2 py-0.5 rounded-full ${connected ? 'bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-400' : 'bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400'}`}>
                   <span className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-green-500' : 'bg-red-500'}`} />
                   {connected ? '已连接' : '未连接'}
                 </span>
-                <span className="text-gray-500">
+                <span className="text-theme-muted">
                   {isPaused ? `已暂停 (${pausedLogsRef.current.length} 条待显示)` : `${logs.length} 条日志`}
                 </span>
               </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <div className="flex rounded-lg overflow-hidden border border-gray-200">
+            <div className="flex rounded-lg overflow-hidden border border-gray-200 dark:border-neutral-600">
               {[
                 { value: 'all', label: '全部' },
                 { value: 'info', label: 'Info' },
@@ -190,7 +190,7 @@ const LogViewer: React.FC = () => {
                   className={`px-3 py-1.5 text-xs font-medium transition-all ${
                     levelFilter === item.value
                       ? 'gradient-primary-br text-white'
-                      : 'bg-white/50 text-gray-600 hover:bg-white/80'
+                      : 'bg-theme-input text-theme-secondary hover:bg-theme-item-hover'
                   }`}
                 >
                   {item.label}
@@ -202,11 +202,11 @@ const LogViewer: React.FC = () => {
               placeholder="搜索日志..."
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              className="px-3 py-1.5 text-sm bg-white/50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent w-40"
+              className="px-3 py-1.5 text-sm bg-theme-input border border-theme-input rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent w-40 text-theme placeholder:text-theme-hint"
             />
             <button
               onClick={() => setAutoScroll(!autoScroll)}
-              className={`p-2 rounded-lg transition-all ${autoScroll ? 'gradient-primary text-white shadow-md' : 'bg-white/50 text-gray-600 hover:bg-white/80'}`}
+              className={`p-2 rounded-lg transition-all ${autoScroll ? 'gradient-primary text-white shadow-md' : 'bg-theme-input text-theme-secondary hover:bg-theme-item-hover'}`}
               title={autoScroll ? '自动滚动已开启' : '自动滚动已关闭'}
             >
               <ArrowDown size={18} />
@@ -237,7 +237,7 @@ const LogViewer: React.FC = () => {
           className="h-[calc(100vh-240px)] overflow-auto pr-2"
         >
           {filteredLogs.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-gray-400">
+            <div className="flex flex-col items-center justify-center h-full text-theme-hint">
               <Terminal size={48} className="mb-3 opacity-50" />
               <p className="text-sm">等待日志...</p>
             </div>
@@ -254,12 +254,12 @@ const LogViewer: React.FC = () => {
                       <div className="flex items-start gap-2">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-0.5">
-                            <span className="text-xs text-gray-400 font-mono">{log.dateTimeStr}</span>
+                            <span className="text-xs text-theme-hint font-mono">{log.dateTimeStr}</span>
                             <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${style.badge}`}>
                               {log.type.toUpperCase()}
                             </span>
                           </div>
-                          <p className="text-sm text-gray-700 whitespace-pre-wrap break-all font-mono">
+                          <p className="text-sm text-theme-secondary whitespace-pre-wrap break-all font-mono">
                             {log.content}
                           </p>
                         </div>

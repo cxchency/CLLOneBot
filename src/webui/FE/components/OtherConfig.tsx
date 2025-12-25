@@ -19,25 +19,22 @@ const OtherConfig: React.FC<OtherConfigProps> = ({ config, onChange, onOpenChang
       {/* 系统功能 */}
       <div className='card p-6'>
         <div className='flex items-center gap-3 mb-6'>
-          <div
-            className='w-10 h-10 rounded-xl gradient-primary-br flex items-center justify-center'>
+          <div className='w-10 h-10 rounded-xl gradient-primary-br flex items-center justify-center'>
             <Globe size={20} className='text-white' />
           </div>
           <div>
-            <h3 className='text-lg font-semibold text-gray-800'>系统功能</h3>
-            <p className='text-sm text-gray-600'>基础功能开关配置</p>
+            <h3 className='text-lg font-semibold text-theme'>系统功能</h3>
+            <p className='text-sm text-theme-secondary'>基础功能开关配置</p>
           </div>
         </div>
 
         <div className='space-y-4'>
-
-          <div
-            className='flex items-center justify-between p-4 bg-gray-50/50 rounded-xl hover:bg-gray-100/50 transition-colors'>
+          <div className='flex items-center justify-between p-4 bg-theme-item rounded-xl bg-item-hover transition-colors'>
             <div className='flex items-center gap-3'>
               <FileText size={20} className='text-green-600' />
               <div>
-                <div className='text-sm font-medium text-gray-800'>日志记录</div>
-                <div className='text-xs text-gray-500 mt-0.5'>启用后记录详细的运行日志</div>
+                <div className='text-sm font-medium text-theme'>日志记录</div>
+                <div className='text-xs text-theme-muted mt-0.5'>启用后记录详细的运行日志</div>
               </div>
             </div>
             <input
@@ -47,13 +44,12 @@ const OtherConfig: React.FC<OtherConfigProps> = ({ config, onChange, onOpenChang
               className="switch-toggle"
             />
           </div>
-          <div
-            className='flex items-center justify-between p-4 bg-gray-50/50 rounded-xl hover:bg-gray-100/50 transition-colors'>
+          <div className='flex items-center justify-between p-4 bg-theme-item rounded-xl bg-item-hover transition-colors'>
             <div className='flex items-center gap-3'>
               <Globe size={20} className='text-pink-500' />
               <div>
-                <div className='text-sm font-medium text-gray-800'>只监听本地地址</div>
-                <div className='text-xs text-gray-500 mt-0.5'>取消后可能会暴露在公网</div>
+                <div className='text-sm font-medium text-theme'>只监听本地地址</div>
+                <div className='text-xs text-theme-muted mt-0.5'>取消后可能会暴露在公网</div>
               </div>
             </div>
             <input
@@ -63,14 +59,12 @@ const OtherConfig: React.FC<OtherConfigProps> = ({ config, onChange, onOpenChang
               className="switch-toggle"
             />
           </div>
-          <div
-            className='flex items-center justify-between p-4 bg-gray-50/50 rounded-xl hover:bg-gray-100/50 transition-colors'>
+          <div className='flex items-center justify-between p-4 bg-theme-item rounded-xl bg-item-hover transition-colors'>
             <div className='flex items-center gap-3'>
-              {/*<FileText size={20} className='text-pink-500' />*/}
               <Paperclip size={20} className='text-pink-500'/>
               <div>
-                <div className='text-sm font-medium text-gray-800'>本地文件转URL</div>
-                <div className='text-xs text-gray-500 mt-0.5'>启用后可将本地文件转换为URL链接</div>
+                <div className='text-sm font-medium text-theme'>本地文件转URL</div>
+                <div className='text-xs text-theme-muted mt-0.5'>启用后可将本地文件转换为URL链接</div>
               </div>
             </div>
             <input
@@ -80,31 +74,28 @@ const OtherConfig: React.FC<OtherConfigProps> = ({ config, onChange, onOpenChang
               className="switch-toggle"
             />
           </div>
-
         </div>
       </div>
 
       {/* 文件管理 */}
       <div className='card p-6'>
         <div className='flex items-center gap-3 mb-6'>
-          <div
-            className='w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center'>
+          <div className='w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center'>
             <Trash2 size={20} className='text-white' />
           </div>
           <div>
-            <h3 className='text-lg font-semibold text-gray-800'>文件管理</h3>
-            <p className='text-sm text-gray-600'>自动清理文件相关配置</p>
+            <h3 className='text-lg font-semibold text-theme'>文件管理</h3>
+            <p className='text-sm text-theme-secondary'>自动清理文件相关配置</p>
           </div>
         </div>
 
         <div className='space-y-4'>
-          <div
-            className='flex items-center justify-between p-4 bg-gray-50/50 rounded-xl hover:bg-gray-100/50 transition-colors'>
+          <div className='flex items-center justify-between p-4 bg-theme-item rounded-xl bg-item-hover transition-colors'>
             <div className='flex items-center gap-3'>
               <Trash2 size={20} className='text-red-600' />
               <div>
-                <div className='text-sm font-medium text-gray-800'>自动删除收到的文件</div>
-                <div className='text-xs text-gray-500 mt-0.5'>启用后将自动清理接收的临时文件</div>
+                <div className='text-sm font-medium text-theme'>自动删除收到的文件</div>
+                <div className='text-xs text-theme-muted mt-0.5'>启用后将自动清理接收的临时文件</div>
               </div>
             </div>
             <input
@@ -119,8 +110,8 @@ const OtherConfig: React.FC<OtherConfigProps> = ({ config, onChange, onOpenChang
             <div className='pl-4'>
               <label className='block'>
                 <div className='flex items-center gap-2 mb-2'>
-                  <Clock size={16} className='text-gray-600' />
-                  <span className='text-sm font-medium text-gray-700'>自动删除时间（秒）</span>
+                  <Clock size={16} className='text-theme-secondary' />
+                  <span className='text-sm font-medium text-theme-secondary'>自动删除时间（秒）</span>
                 </div>
                 <input
                   type='number'
@@ -131,7 +122,7 @@ const OtherConfig: React.FC<OtherConfigProps> = ({ config, onChange, onOpenChang
                   className='input-field'
                   placeholder='60'
                 />
-                <p className='text-xs text-gray-500 mt-1'>文件接收后多少秒自动删除（1-3600秒）</p>
+                <p className='text-xs text-theme-muted mt-1'>文件接收后多少秒自动删除（1-3600秒）</p>
               </label>
             </div>
           )}
@@ -141,20 +132,19 @@ const OtherConfig: React.FC<OtherConfigProps> = ({ config, onChange, onOpenChang
       {/* 缓存设置 */}
       <div className='card p-6'>
         <div className='flex items-center gap-3 mb-6'>
-          <div
-            className='w-10 h-10 rounded-xl bg-gradient-to-br from-pink-400 to-rose-500 flex items-center justify-center'>
+          <div className='w-10 h-10 rounded-xl bg-gradient-to-br from-pink-400 to-rose-500 flex items-center justify-center'>
             <Clock size={20} className='text-white' />
           </div>
           <div>
-            <h3 className='text-lg font-semibold text-gray-800'>缓存设置</h3>
-            <p className='text-sm text-gray-600'>消息缓存相关配置</p>
+            <h3 className='text-lg font-semibold text-theme'>缓存设置</h3>
+            <p className='text-sm text-theme-secondary'>消息缓存相关配置</p>
           </div>
         </div>
 
         <label className='block'>
           <div className='flex items-center gap-2 mb-2'>
             <Clock size={16} className='text-pink-500' />
-            <span className='text-sm font-medium text-gray-700'>消息缓存过期时间（秒）</span>
+            <span className='text-sm font-medium text-theme-secondary'>消息缓存过期时间（秒）</span>
           </div>
           <input
             type='number'
@@ -165,27 +155,26 @@ const OtherConfig: React.FC<OtherConfigProps> = ({ config, onChange, onOpenChang
             className='input-field'
             placeholder='3600'
           />
-          <p className='text-xs text-gray-500 mt-1'>消息在缓存中保留的时间（1-86400秒）</p>
+          <p className='text-xs text-theme-muted mt-1'>消息在缓存中保留的时间（1-86400秒）</p>
         </label>
       </div>
 
       {/* 扩展功能 */}
       <div className='card p-6'>
         <div className='flex items-center gap-3 mb-6'>
-          <div
-            className='w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-teal-600 flex items-center justify-center'>
+          <div className='w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-teal-600 flex items-center justify-center'>
             <Music size={20} className='text-white' />
           </div>
           <div>
-            <h3 className='text-lg font-semibold text-gray-800'>扩展功能</h3>
-            <p className='text-sm text-gray-600'>第三方服务配置</p>
+            <h3 className='text-lg font-semibold text-theme'>扩展功能</h3>
+            <p className='text-sm text-theme-secondary'>第三方服务配置</p>
           </div>
         </div>
 
         <label className='block'>
           <div className='flex items-center gap-2 mb-2'>
             <Music size={16} className='text-green-600' />
-            <span className='text-sm font-medium text-gray-700'>音乐签名地址</span>
+            <span className='text-sm font-medium text-theme-secondary'>音乐签名地址</span>
           </div>
           <input
             type='text'
@@ -194,30 +183,28 @@ const OtherConfig: React.FC<OtherConfigProps> = ({ config, onChange, onOpenChang
             placeholder='https://example.com/sign'
             className='input-field'
           />
-          <p className='text-xs text-gray-500 mt-1'>用于音乐卡片签名的服务地址</p>
+          <p className='text-xs text-theme-muted mt-1'>用于音乐卡片签名的服务地址</p>
         </label>
       </div>
 
       {/* 安全设置 */}
       <div className='card p-6'>
         <div className='flex items-center gap-3 mb-6'>
-          <div
-            className='w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-pink-600 flex items-center justify-center'>
+          <div className='w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-pink-600 flex items-center justify-center'>
             <Shield size={20} className='text-white' />
           </div>
           <div>
-            <h3 className='text-lg font-semibold text-gray-800'>安全设置</h3>
-            <p className='text-sm text-gray-600'>WebUI 访问控制</p>
+            <h3 className='text-lg font-semibold text-theme'>安全设置</h3>
+            <p className='text-sm text-theme-secondary'>WebUI 访问控制</p>
           </div>
         </div>
 
-        <div
-          className='flex items-center justify-between p-4 bg-gray-50/50 rounded-xl hover:bg-gray-100/50 transition-colors'>
+        <div className='flex items-center justify-between p-4 bg-theme-item rounded-xl bg-item-hover transition-colors'>
           <div className='flex items-center gap-3'>
             <Lock size={20} className='text-red-600' />
             <div>
-              <div className='text-sm font-medium text-gray-800'>WebUI 访问密码</div>
-              <div className='text-xs text-gray-500 mt-0.5'>用于保护 WebUI 访问的密码</div>
+              <div className='text-sm font-medium text-theme'>WebUI 访问密码</div>
+              <div className='text-xs text-theme-muted mt-0.5'>用于保护 WebUI 访问的密码</div>
             </div>
           </div>
           <button

@@ -294,20 +294,20 @@ const QQLogin: React.FC<QQLoginProps> = ({ onLoginSuccess }) => {
   return (
     <div className="relative min-h-screen flex flex-col items-center justify-center p-5">
       {/* Login Content - AnimatedBackground now provided by App.tsx */}
-      <div className="bg-white/50 backdrop-blur-2xl rounded-3xl p-10 shadow-xl border border-white/30 min-w-[320px] text-center relative z-10">
+      <div className="bg-white/50 dark:bg-neutral-800/70 backdrop-blur-2xl rounded-3xl p-10 shadow-xl border border-white/30 dark:border-neutral-700/50 min-w-[320px] text-center relative z-10">
         {/* Quick Login Mode */}
         {loginMode === 'quick' && (
           <div className="flex flex-col items-center gap-6">
             {/* Single Account Display */}
             {!showAccountList && selectedAccount && (
               <div
-                className="flex flex-col items-center cursor-pointer p-4 rounded-2xl transition-colors hover:bg-blue-50"
+                className="flex flex-col items-center cursor-pointer p-4 rounded-2xl transition-colors hover:bg-pink-50 dark:hover:bg-pink-900/30"
                 onClick={toggleAccountList}
               >
                 <div className="w-20 h-20 rounded-full overflow-hidden mb-3 shadow-lg">
                   <img src={selectedAccount.faceUrl} alt={selectedAccount.nickName} className="w-full h-full object-cover" />
                 </div>
-                <div className="text-base text-gray-800 mb-2">{selectedAccount.nickName}</div>
+                <div className="text-base text-theme mb-2">{selectedAccount.nickName}</div>
               </div>
             )}
 
@@ -317,13 +317,13 @@ const QQLogin: React.FC<QQLoginProps> = ({ onLoginSuccess }) => {
                 {accounts.map((account) => (
                   <div
                     key={account.uin}
-                    className="flex flex-col items-center p-4 rounded-2xl cursor-pointer transition-all border-2 border-transparent hover:bg-pink-50 hover:border-pink-500"
+                    className="flex flex-col items-center p-4 rounded-2xl cursor-pointer transition-all border-2 border-transparent hover:bg-pink-50 dark:hover:bg-pink-900/30 hover:border-pink-500"
                     onClick={() => selectAccount(account)}
                   >
                     <div className="w-[60px] h-[60px] rounded-full overflow-hidden mb-2 shadow-md">
                       <img src={account.faceUrl} alt={account.nickName} className="w-full h-full object-cover" />
                     </div>
-                    <div className="text-sm text-gray-800 text-center truncate w-full px-1">{account.nickName}</div>
+                    <div className="text-sm text-theme text-center truncate w-full px-1">{account.nickName}</div>
                   </div>
                 ))}
               </div>
@@ -385,7 +385,7 @@ const QQLogin: React.FC<QQLoginProps> = ({ onLoginSuccess }) => {
               </div>
             </div>
 
-            <div className="text-gray-600">请使用手机QQ扫码登录</div>
+            <div className="text-theme-secondary">请使用手机QQ扫码登录</div>
 
             {/* QR Status Messages */}
             {qrStatus && (

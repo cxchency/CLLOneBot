@@ -80,13 +80,13 @@ const StatItem: React.FC<{
   value: string | number
   gradient: string
 }> = ({ icon, label, value, gradient }) => (
-  <div className="flex items-center gap-3 p-3 rounded-xl bg-white/30 hover:bg-white/50 transition-all duration-200 hover:scale-[1.02]">
+  <div className="flex items-center gap-3 p-3 rounded-xl bg-theme-item hover:bg-theme-item-hover transition-all duration-200 hover:scale-[1.02]">
     <div className={`w-10 h-10 rounded-xl ${gradient} flex items-center justify-center shadow-md`}>
       {icon}
     </div>
     <div className="flex-1 min-w-0">
-      <p className="text-xs text-gray-500">{label}</p>
-      <p className="text-lg font-bold text-gray-800 truncate">{value}</p>
+      <p className="text-xs text-theme-muted">{label}</p>
+      <p className="text-lg font-bold text-theme truncate">{value}</p>
     </div>
   </div>
 )
@@ -117,7 +117,7 @@ const PieChart: React.FC<{
               <stop offset="100%" stopColor={gradientColors[1]} />
             </linearGradient>
           </defs>
-          <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="rgba(0,0,0,0.06)" strokeWidth={strokeWidth} />
+          <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="rgba(128,128,128,0.15)" strokeWidth={strokeWidth} />
           <circle
             cx={size / 2}
             cy={size / 2}
@@ -138,11 +138,11 @@ const PieChart: React.FC<{
           >
             {icon}
           </div>
-          <span className="text-sm font-bold text-gray-800 mt-1">{percent.toFixed(1)}%</span>
+          <span className="text-sm font-bold text-theme mt-1">{percent.toFixed(1)}%</span>
         </div>
       </div>
-      <p className="text-xs font-semibold text-gray-700 mt-2">{label}</p>
-      <p className="text-xs text-gray-500">{displayValue}</p>
+      <p className="text-xs font-semibold text-theme mt-2">{label}</p>
+      <p className="text-xs text-theme-muted">{displayValue}</p>
     </div>
   )
 }
@@ -167,7 +167,7 @@ const ResourceCard: React.FC<{
         <div className={`w-8 h-8 rounded-lg ${gradient} flex items-center justify-center shadow-md`}>
           {icon}
         </div>
-        <h4 className="text-sm font-semibold text-gray-800">{title}</h4>
+        <h4 className="text-sm font-semibold text-theme">{title}</h4>
       </div>
       <div className="flex justify-around">
         <PieChart
@@ -237,7 +237,7 @@ const Dashboard: React.FC = () => {
   if (!stats) {
     return (
       <div className="card p-8 text-center">
-        <p className="text-gray-500">无法加载统计数据</p>
+        <p className="text-theme-muted">无法加载统计数据</p>
       </div>
     )
   }
@@ -252,22 +252,22 @@ const Dashboard: React.FC = () => {
             <div className="w-10 h-10 rounded-xl gradient-primary-br flex items-center justify-center shadow-md">
               <Clock size={20} className="text-white" />
             </div>
-            <h3 className="text-base font-semibold text-gray-800">运行时间</h3>
+            <h3 className="text-base font-semibold text-theme">运行时间</h3>
             <div className="ml-auto flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 text-green-600 text-xs font-medium">
               <Zap size={12} />
               运行中
             </div>
           </div>
           <div className="flex-1 flex flex-col justify-center space-y-2">
-            <div className="p-3 rounded-xl bg-gradient-to-r from-pink-50 to-rose-50">
-              <p className="text-xs text-gray-500">已运行</p>
+            <div className="p-3 rounded-xl bg-theme-item">
+              <p className="text-xs text-theme-muted">已运行</p>
               <p className="text-xl font-bold bg-gradient-to-r from-pink-500 to-rose-500 bg-clip-text text-transparent">
                 {uptime}
               </p>
             </div>
             <div className="px-3 py-2">
-              <p className="text-xs text-gray-500">启动时间</p>
-              <p className="text-sm font-medium text-gray-700">{formatTime(stats.startupTime)}</p>
+              <p className="text-xs text-theme-muted">启动时间</p>
+              <p className="text-sm font-medium text-theme">{formatTime(stats.startupTime)}</p>
             </div>
           </div>
         </div>

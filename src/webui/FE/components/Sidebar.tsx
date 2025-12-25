@@ -33,17 +33,16 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, accountInfo }
   ]
 
   return (
-    <div
-      className='w-64 bg-white/50 dark:bg-neutral-900 backdrop-blur-2xl dark:backdrop-blur-none h-screen flex flex-col shadow-xl border-r border-white/30 dark:border-neutral-800 sticky top-0'>
+    <div className='w-64 bg-theme-card backdrop-blur-2xl h-screen flex flex-col shadow-xl border-r border-theme sticky top-0'>
       {/* Logo */}
-      <div className='p-6 border-b border-white/20 dark:border-neutral-800'>
+      <div className='p-6 border-b border-theme-divider'>
         <div className='flex items-center gap-4'>
           <div className='w-12 h-12 rounded-2xl overflow-hidden shadow-lg flex-shrink-0'>
             <img src='/logo.jpg' alt='Logo' className='w-full h-full object-cover' />
           </div>
           <div className='flex-1 min-w-0'>
-            <h1 className='text-xl font-bold text-gray-800 dark:text-neutral-100 truncate'>LLBot</h1>
-            <p className='text-xs text-gray-500 dark:text-neutral-500'>WebUI</p>
+            <h1 className='text-xl font-bold text-theme truncate'>LLBot</h1>
+            <p className='text-xs text-theme-muted'>WebUI</p>
           </div>
         </div>
       </div>
@@ -60,7 +59,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, accountInfo }
               className={`w-full flex items-center space-x-3 px-4 py-3 rounded-2xl transition-all duration-200 ${
                 isActive
                   ? 'gradient-primary text-white shadow-lg scale-105'
-                  : 'text-gray-700 dark:text-neutral-300 hover:bg-white/50 dark:hover:bg-neutral-800 hover:backdrop-blur-sm dark:hover:backdrop-blur-none'
+                  : 'text-theme hover:bg-theme-item-hover'
               }`}
             >
               <Icon size={20} />
@@ -71,14 +70,14 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, accountInfo }
       </nav>
 
       {/* Account Info & Theme Toggle */}
-      <div className='p-4 border-t border-white/20 dark:border-neutral-800'>
+      <div className='p-4 border-t border-theme-divider'>
         <div className='flex items-center space-x-3 px-3 py-2'>
           {accountInfo && (
             <>
               <img
                 src={`https://thirdqq.qlogo.cn/g?b=qq&nk=${accountInfo.uin}&s=640`}
                 alt='头像'
-                className='w-10 h-10 rounded-full object-cover ring-2 ring-white/50 dark:ring-neutral-700'
+                className='w-10 h-10 rounded-full object-cover ring-2 ring-white/50 dark:ring-neutral-600'
                 onError={(e) => {
                   const target = e.target as HTMLImageElement
                   target.style.display = 'none'
@@ -93,10 +92,10 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, accountInfo }
                 {accountInfo.nick.charAt(0).toUpperCase()}
               </div>
               <div className='flex-1 min-w-0'>
-                <p className='text-sm font-medium text-gray-900 dark:text-neutral-100 truncate'>
+                <p className='text-sm font-medium text-theme truncate'>
                   {accountInfo.nick}
                 </p>
-                <p className='text-xs text-gray-500 dark:text-neutral-500 truncate'>{accountInfo.uin}</p>
+                <p className='text-xs text-theme-muted truncate'>{accountInfo.uin}</p>
               </div>
             </>
           )}

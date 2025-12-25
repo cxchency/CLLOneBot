@@ -159,8 +159,8 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
       <div className="card p-6">
         <label className="flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-semibold text-gray-800">OneBot 11 协议</h3>
-            <p className="text-sm text-gray-600 mt-1">启用或禁用 OneBot 11 适配器</p>
+            <h3 className="text-lg font-semibold text-theme">OneBot 11 协议</h3>
+            <p className="text-sm text-theme-secondary mt-1">启用或禁用 OneBot 11 适配器</p>
           </div>
           <input
             type="checkbox"
@@ -198,37 +198,37 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
                       adapter.enable
                         ? 'gradient-primary-br text-white'
-                        : 'bg-gray-200 text-gray-600'
+                        : 'bg-gray-200 dark:bg-neutral-600 text-theme-secondary'
                     }`}>
                       <Icon size={24} />
                     </div>
                     <div className="flex-1">
-                      <h4 className="text-lg font-semibold text-gray-800">
+                      <h4 className="text-lg font-semibold text-theme">
                         {adapter.name || info.name}
                       </h4>
-                      <p className="text-sm text-gray-600">{info.desc}</p>
+                      <p className="text-sm text-theme-secondary">{info.desc}</p>
                     </div>
                   </div>
-                  <Settings size={20} className="text-gray-400" />
+                  <Settings size={20} className="text-theme-hint" />
                 </div>
 
-                <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
+                <div className="flex items-center justify-between mt-4 pt-4 border-t border-theme-divider">
                   <span className={`text-xs font-medium px-3 py-1 rounded-full ${
                     adapter.enable
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-gray-100 text-gray-600'
+                      ? 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-400'
+                      : 'bg-gray-100 dark:bg-neutral-700 text-gray-600 dark:text-neutral-400'
                   }`}>
                     {adapter.enable ? '已启用' : '未启用'}
                   </span>
                   {adapter.enable && (
                     <>
                       {(adapter.type === 'ws' || adapter.type === 'http') && (
-                        <span className="text-sm text-gray-600">
+                        <span className="text-sm text-theme-secondary">
                           端口: {(adapter as WsConnectConfig | HttpConnectConfig).port}
                         </span>
                       )}
                       {(adapter.type === 'ws-reverse' || adapter.type === 'http-post') && (
-                        <span className="text-sm text-gray-600 truncate max-w-[180px]" title={(adapter as WsReverseConnectConfig | HttpPostConnectConfig).url || '未配置'}>
+                        <span className="text-sm text-theme-secondary truncate max-w-[180px]" title={(adapter as WsReverseConnectConfig | HttpPostConnectConfig).url || '未配置'}>
                           URL: {(adapter as WsReverseConnectConfig | HttpPostConnectConfig).url || '未配置'}
                         </span>
                       )}
@@ -256,10 +256,10 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
       {/* 配置弹窗 */}
       {showDialog && selectedAdapter && (
         <Portal>
-          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center p-4" style={{ zIndex: 9000 }}>
-          <div className="bg-white/60 backdrop-blur-xl rounded-3xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col border border-white/50">
+          <div className="fixed inset-0 bg-black/30 dark:bg-black/50 backdrop-blur-sm flex items-center justify-center p-4" style={{ zIndex: 9000 }}>
+          <div className="bg-white/60 dark:bg-neutral-800/90 backdrop-blur-xl rounded-3xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col border border-white/50 dark:border-neutral-700/50">
             {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-white/20">
+            <div className="flex items-center justify-between p-6 border-b border-white/20 dark:border-neutral-700/50">
               <div className="flex items-center gap-3 flex-1">
                 {editingName ? (
                   <div className="flex items-center gap-2 flex-1">
@@ -272,7 +272,7 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
                         if (e.key === 'Escape') handleCancelEditName();
                       }}
                       placeholder="输入自定义名称"
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500"
+                      className="flex-1 px-3 py-2 border border-theme-input rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500 bg-theme-input text-theme"
                       autoFocus
                     />
                     <button
@@ -283,20 +283,20 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
                     </button>
                     <button
                       onClick={handleCancelEditName}
-                      className="px-4 py-2 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-colors"
+                      className="px-4 py-2 bg-theme-item text-theme-secondary rounded-xl hover:bg-theme-item-hover transition-colors"
                     >
                       取消
                     </button>
                   </div>
                 ) : (
                   <>
-                    <h3 className="text-xl font-semibold text-gray-900">
+                    <h3 className="text-xl font-semibold text-theme">
                       {isNewAdapter ? '新建 - ' : ''}
                       {selectedAdapter.name || adapterInfo[selectedAdapter.type as keyof typeof adapterInfo].name}
                     </h3>
                     <button
                       onClick={handleStartEditName}
-                      className="p-2 text-gray-400 hover:text-pink-500 hover:bg-pink-50 rounded-lg transition-colors"
+                      className="p-2 text-theme-hint hover:text-pink-500 hover:bg-pink-50 dark:hover:bg-pink-900/30 rounded-lg transition-colors"
                       title="编辑名称"
                     >
                       <Edit2 size={18} />
@@ -308,7 +308,7 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
                 setShowDialog(false);
                 setIsNewAdapter(false);
                 setEditingName(false);
-              }} className="text-gray-400 hover:text-gray-600">
+              }} className="text-theme-hint hover:text-theme">
                 <X size={24} />
               </button>
             </div>
@@ -318,7 +318,7 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
               {/* 启用开关 */}
               <div>
                 <label className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-700">启用此适配器</span>
+                  <span className="text-sm font-medium text-theme-secondary">启用此适配器</span>
                   <input
                     type="checkbox"
                     checked={selectedAdapter.enable}
@@ -332,7 +332,7 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
               {selectedAdapter.type === 'ws' && (
                 <>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">端口</label>
+                    <label className="block text-sm font-medium text-theme-secondary mb-2">端口</label>
                     <input
                       type="number"
                       value={(selectedAdapter as WsConnectConfig).port}
@@ -341,7 +341,7 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">心跳间隔 (ms)</label>
+                    <label className="block text-sm font-medium text-theme-secondary mb-2">心跳间隔 (ms)</label>
                     <input
                       type="number"
                       value={(selectedAdapter as WsConnectConfig).heartInterval}
@@ -356,7 +356,7 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
               {selectedAdapter.type === 'ws-reverse' && (
                 <>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">连接地址</label>
+                    <label className="block text-sm font-medium text-theme-secondary mb-2">连接地址</label>
                     <input
                       type="text"
                       value={(selectedAdapter as WsReverseConnectConfig).url}
@@ -366,7 +366,7 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">心跳间隔 (ms)</label>
+                    <label className="block text-sm font-medium text-theme-secondary mb-2">心跳间隔 (ms)</label>
                     <input
                       type="number"
                       value={(selectedAdapter as WsReverseConnectConfig).heartInterval}
@@ -380,7 +380,7 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
               {/* HTTP */}
               {selectedAdapter.type === 'http' && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">端口</label>
+                  <label className="block text-sm font-medium text-theme-secondary mb-2">端口</label>
                   <input
                     type="number"
                     value={(selectedAdapter as HttpConnectConfig).port}
@@ -394,7 +394,7 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
               {selectedAdapter.type === 'http-post' && (
                 <>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">上报地址</label>
+                    <label className="block text-sm font-medium text-theme-secondary mb-2">上报地址</label>
                     <input
                       type="text"
                       value={(selectedAdapter as HttpPostConnectConfig).url}
@@ -405,7 +405,7 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
                   </div>
                   <div>
                     <label className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-gray-700">启用心跳</span>
+                      <span className="text-sm font-medium text-theme-secondary">启用心跳</span>
                       <input
                         type="checkbox"
                         checked={(selectedAdapter as HttpPostConnectConfig).enableHeart}
@@ -415,7 +415,7 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
                     </label>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">心跳间隔 (ms)</label>
+                    <label className="block text-sm font-medium text-theme-secondary mb-2">心跳间隔 (ms)</label>
                     <input
                       type="number"
                       value={(selectedAdapter as HttpPostConnectConfig).heartInterval}
@@ -427,12 +427,12 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
               )}
 
               {/* 通用配置 */}
-              <div className="border-t border-gray-200 pt-6">
-                <h4 className="text-md font-semibold text-gray-800 mb-4">通用配置</h4>
+              <div className="border-t border-theme-divider pt-6">
+                <h4 className="text-md font-semibold text-theme mb-4">通用配置</h4>
 
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Token</label>
+                    <label className="block text-sm font-medium text-theme-secondary mb-2">Token</label>
                     <div className="relative">
                       <input
                         type={showToken ? 'text' : 'password'}
@@ -444,7 +444,7 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
                       <button
                         type="button"
                         onClick={() => setShowToken(!showToken)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors p-1"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-theme-hint hover:text-theme transition-colors p-1"
                       >
                         {showToken ? <EyeOff size={20} /> : <Eye size={20} />}
                       </button>
@@ -452,8 +452,8 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">消息格式</label>
-                    <div className="flex gap-4">
+                    <label className="block text-sm font-medium text-theme-secondary mb-2">消息格式</label>
+                    <div className="flex gap-4 text-theme-secondary">
                       <label className="flex items-center">
                         <input
                           type="radio"
@@ -479,7 +479,7 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
 
                   <div>
                     <label className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-700">上报自己发送的消息</span>
+                      <span className="text-sm font-medium text-theme-secondary">上报自己发送的消息</span>
                       <input
                         type="checkbox"
                         checked={selectedAdapter.reportSelfMessage}
@@ -491,7 +491,7 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
 
                   <div>
                     <label className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-700">上报离线消息</span>
+                      <span className="text-sm font-medium text-theme-secondary">上报离线消息</span>
                       <input
                         type="checkbox"
                         checked={selectedAdapter.reportOfflineMessage}
@@ -503,7 +503,7 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
 
                   <div>
                     <label className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-700">调试模式</span>
+                      <span className="text-sm font-medium text-theme-secondary">调试模式</span>
                       <input
                         type="checkbox"
                         checked={selectedAdapter.debug}
@@ -517,7 +517,7 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-between p-6 border-t border-white/20">
+            <div className="flex items-center justify-between p-6 border-t border-white/20 dark:border-neutral-700/50">
               {!isNewAdapter && (
                 <button
                   onClick={handleDeleteAdapter}
@@ -531,7 +531,7 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => setShowDialog(false)}
-                  className="px-6 py-2.5 text-gray-700 hover:bg-gray-100 rounded-xl font-medium transition-colors"
+                  className="px-6 py-2.5 text-theme-secondary hover:bg-theme-item rounded-xl font-medium transition-colors"
                 >
                   取消
                 </button>
@@ -551,11 +551,11 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
       {/* 添加适配器对话框 */}
       {showAddDialog && (
         <Portal>
-          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center p-4" style={{ zIndex: 9000 }}>
-          <div className="bg-white/60 backdrop-blur-xl rounded-3xl shadow-2xl w-full max-w-md border border-white/50">
-            <div className="flex items-center justify-between p-6 border-b border-white/20">
-              <h3 className="text-xl font-semibold text-gray-900">选择适配器类型</h3>
-              <button onClick={() => setShowAddDialog(false)} className="text-gray-400 hover:text-gray-600">
+          <div className="fixed inset-0 bg-black/30 dark:bg-black/50 backdrop-blur-sm flex items-center justify-center p-4" style={{ zIndex: 9000 }}>
+          <div className="bg-white/60 dark:bg-neutral-800/90 backdrop-blur-xl rounded-3xl shadow-2xl w-full max-w-md border border-white/50 dark:border-neutral-700/50">
+            <div className="flex items-center justify-between p-6 border-b border-white/20 dark:border-neutral-700/50">
+              <h3 className="text-xl font-semibold text-theme">选择适配器类型</h3>
+              <button onClick={() => setShowAddDialog(false)} className="text-theme-hint hover:text-theme">
                 <X size={24} />
               </button>
             </div>
@@ -563,61 +563,61 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
             <div className="p-6 space-y-3">
               <button
                 onClick={() => handleAddAdapter('ws')}
-                className="w-full p-4 rounded-2xl bg-gradient-to-br from-pink-50 to-rose-50 hover:from-pink-100 hover:to-rose-100 transition-all flex items-center gap-4 group"
+                className="w-full p-4 rounded-2xl bg-gradient-to-br from-pink-50 to-rose-50 dark:from-pink-900/30 dark:to-rose-900/30 hover:from-pink-100 hover:to-rose-100 dark:hover:from-pink-900/50 dark:hover:to-rose-900/50 transition-all flex items-center gap-4 group"
               >
                 <div className="w-12 h-12 rounded-xl gradient-primary-br text-white flex items-center justify-center group-hover:scale-110 transition-transform">
                   <Radio size={24} />
                 </div>
                 <div className="text-left">
-                  <h4 className="text-lg font-semibold text-gray-800">WebSocket正向</h4>
-                  <p className="text-sm text-gray-600">作为WebSocket服务器</p>
+                  <h4 className="text-lg font-semibold text-theme">WebSocket正向</h4>
+                  <p className="text-sm text-theme-secondary">作为WebSocket服务器</p>
                 </div>
               </button>
 
               <button
                 onClick={() => handleAddAdapter('ws-reverse')}
-                className="w-full p-4 rounded-2xl bg-gradient-to-br from-green-50 to-teal-50 hover:from-green-100 hover:to-teal-100 transition-all flex items-center gap-4 group"
+                className="w-full p-4 rounded-2xl bg-gradient-to-br from-green-50 to-teal-50 dark:from-green-900/30 dark:to-teal-900/30 hover:from-green-100 hover:to-teal-100 dark:hover:from-green-900/50 dark:hover:to-teal-900/50 transition-all flex items-center gap-4 group"
               >
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-teal-600 text-white flex items-center justify-center group-hover:scale-110 transition-transform">
                   <Wifi size={24} />
                 </div>
                 <div className="text-left">
-                  <h4 className="text-lg font-semibold text-gray-800">WebSocket反向</h4>
-                  <p className="text-sm text-gray-600">作为客户端连接到WebSocket服务端</p>
+                  <h4 className="text-lg font-semibold text-theme">WebSocket反向</h4>
+                  <p className="text-sm text-theme-secondary">作为客户端连接到WebSocket服务端</p>
                 </div>
               </button>
 
               <button
                 onClick={() => handleAddAdapter('http')}
-                className="w-full p-4 rounded-2xl bg-gradient-to-br from-orange-50 to-red-50 hover:from-orange-100 hover:to-red-100 transition-all flex items-center gap-4 group"
+                className="w-full p-4 rounded-2xl bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/30 dark:to-red-900/30 hover:from-orange-100 hover:to-red-100 dark:hover:from-orange-900/50 dark:hover:to-red-900/50 transition-all flex items-center gap-4 group"
               >
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-red-600 text-white flex items-center justify-center group-hover:scale-110 transition-transform">
                   <Globe size={24} />
                 </div>
                 <div className="text-left">
-                  <h4 className="text-lg font-semibold text-gray-800">HTTP服务</h4>
-                  <p className="text-sm text-gray-600">提供HTTP API服务</p>
+                  <h4 className="text-lg font-semibold text-theme">HTTP服务</h4>
+                  <p className="text-sm text-theme-secondary">提供HTTP API服务</p>
                 </div>
               </button>
 
               <button
                 onClick={() => handleAddAdapter('http-post')}
-                className="w-full p-4 rounded-2xl bg-gradient-to-br from-pink-50 to-rose-50 hover:from-pink-100 hover:to-rose-100 transition-all flex items-center gap-4 group"
+                className="w-full p-4 rounded-2xl bg-gradient-to-br from-pink-50 to-rose-50 dark:from-pink-900/30 dark:to-rose-900/30 hover:from-pink-100 hover:to-rose-100 dark:hover:from-pink-900/50 dark:hover:to-rose-900/50 transition-all flex items-center gap-4 group"
               >
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-500 to-rose-600 text-white flex items-center justify-center group-hover:scale-110 transition-transform">
                   <Send size={24} />
                 </div>
                 <div className="text-left">
-                  <h4 className="text-lg font-semibold text-gray-800">HTTP上报</h4>
-                  <p className="text-sm text-gray-600">上报事件到HTTP服务器</p>
+                  <h4 className="text-lg font-semibold text-theme">HTTP上报</h4>
+                  <p className="text-sm text-theme-secondary">上报事件到HTTP服务器</p>
                 </div>
               </button>
             </div>
 
-            <div className="flex justify-end p-6 border-t border-white/20">
+            <div className="flex justify-end p-6 border-t border-white/20 dark:border-neutral-700/50">
               <button
                 onClick={() => setShowAddDialog(false)}
-                className="px-6 py-2.5 text-gray-700 hover:bg-gray-100 rounded-xl font-medium transition-colors"
+                className="px-6 py-2.5 text-theme-secondary hover:bg-theme-item rounded-xl font-medium transition-colors"
               >
                 取消
               </button>

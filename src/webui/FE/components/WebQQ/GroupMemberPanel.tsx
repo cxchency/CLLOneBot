@@ -74,14 +74,14 @@ const GroupMemberPanel: React.FC<GroupMemberPanelProps> = ({ groupCode, onClose 
   return (
     <div className="flex flex-col h-full">
       {/* 头部 */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200/50">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-theme-divider">
         <div>
-          <div className="font-medium text-gray-800">群成员</div>
-          <div className="text-xs text-gray-400">{stats.total} 人</div>
+          <div className="font-medium text-theme">群成员</div>
+          <div className="text-xs text-theme-hint">{stats.total} 人</div>
         </div>
         <button
           onClick={onClose}
-          className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100/50 rounded-lg transition-colors"
+          className="p-1.5 text-theme-hint hover:text-theme hover:bg-theme-item rounded-lg transition-colors"
         >
           <X size={18} />
         </button>
@@ -90,13 +90,13 @@ const GroupMemberPanel: React.FC<GroupMemberPanelProps> = ({ groupCode, onClose 
       {/* 搜索框 */}
       <div className="p-3">
         <div className="relative">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-theme-hint" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="搜索成员..."
-            className="w-full pl-9 pr-3 py-2 text-sm bg-gray-100/50 border border-gray-200/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500/50"
+            className="w-full pl-9 pr-3 py-2 text-sm bg-theme-input border border-theme-input rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500/50 text-theme placeholder:text-theme-hint"
           />
         </div>
       </div>
@@ -118,7 +118,7 @@ const GroupMemberPanel: React.FC<GroupMemberPanelProps> = ({ groupCode, onClose 
             </button>
           </div>
         ) : filteredMembers.length === 0 ? (
-          <div className="flex items-center justify-center h-32 text-gray-400 text-sm">
+          <div className="flex items-center justify-center h-32 text-theme-hint text-sm">
             {searchQuery ? '未找到匹配的成员' : '暂无成员'}
           </div>
         ) : (
@@ -147,7 +147,7 @@ export const MemberListItem: React.FC<MemberListItemProps> = ({ member }) => {
   ) : null
 
   return (
-    <div className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50/50 transition-colors">
+    <div className="flex items-center gap-3 px-3 py-2 hover:bg-theme-item-hover transition-colors">
       <img
         src={member.avatar}
         alt={displayName}
@@ -158,11 +158,11 @@ export const MemberListItem: React.FC<MemberListItemProps> = ({ member }) => {
       />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
-          <span className="text-sm text-gray-800 truncate">{displayName}</span>
+          <span className="text-sm text-theme truncate">{displayName}</span>
           {roleIcon}
         </div>
         {member.card && member.card !== member.nickname && (
-          <div className="text-xs text-gray-400 truncate">{member.nickname}</div>
+          <div className="text-xs text-theme-hint truncate">{member.nickname}</div>
         )}
       </div>
     </div>
