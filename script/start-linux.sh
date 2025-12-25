@@ -34,7 +34,7 @@ log "检测到系统: $DISTRO"
 
 install_arch() {
     log "检查 Arch 依赖..."
-    sudo pacman -Sy --needed --noconfirm base-devel git ffmpeg xorg-server-xvfb libvips imagemagick dbus xorg-xhost fcitx5-im wget
+    sudo pacman -S --needed --noconfirm base-devel git ffmpeg xorg-server-xvfb libvips imagemagick dbus xorg-xhost fcitx5-im wget
 
     if [ ! -f "/opt/QQ/qq" ] && confirm "未检测到 QQ，是否通过 AUR 安装?"; then
         if ! command -v yay &> /dev/null; then
@@ -80,7 +80,7 @@ install_debian() {
 [ "$DISTRO" == "arch" ] && install_arch || install_debian
 
 chmod +x "$SCRIPT_DIR/llbot/node" "$SCRIPT_DIR/llbot/pmhq" 2>/dev/null
-[ "$DISTRO" == "arch" ] && sudo chown -R $(whoami):$(whoami) "$SCRIPT_DIR"
+[ "$DISTRO" == "arch" ] && sudo chown -R $(whoami):$(whoami) "$SCRIPT_DIR/llbot"
 
 PORT=$(find_port 13000)
 [ -z "$PORT" ] && error "无法找到可用端口"
@@ -99,7 +99,15 @@ MODE_CHOICE=${MODE_CHOICE:-$DEFAULT_CHOICE}
 USE_XVFB=$([ "$MODE_CHOICE" == "2" ] && echo 1 || echo 0)
 
 # 授权 X11
-[ $USE_XVFB -eq 0 ] && xhost +local:$(whoami) > /dev/null 2>&1
+if [ $USE_XVFB -eq 0 ]; then
+    if command -v xauth &> /dev/null; then
+        export XAUTHORITY=${XAUTHORITY:-$HOME/.Xauthority}
+    else
+        warn "未检测到 xauth，使用临时 xhost 授权"
+        xhost +local:$(whoami) > /dev/null 2>&1
+        trap "xhost -local:$(whoami) > /dev/null 2>&1" EXIT
+    fi
+fi
 
 IM_ENV=""
 EXTRA_FLAGS=""
@@ -117,27 +125,22 @@ NODE_BIN="$SCRIPT_DIR/llbot/node"
 LLBOT_JS="$SCRIPT_DIR/llbot/llbot.js"
 PMHQ_BIN="$SCRIPT_DIR/llbot/pmhq"
 
-if [ "$DISTRO" == "arch" ]; then
-    export SYS_LIBS="/usr/lib/libstdc++.so.6:/usr/lib/libgcc_s.so.1"
-    export DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(id -u)/bus"
+run_llbot() {
+    if [ "$DISTRO" == "arch" ]; then
+        export LD_PRELOAD="/usr/lib/libstdc++.so.6:/usr/lib/libgcc_s.so.1"
+        export DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(id -u)/bus"
+    fi
 
-    SUB_CMD="env LD_PRELOAD=$SYS_LIBS $IM_ENV $NODE_BIN --enable-source-maps $LLBOT_JS -- --pmhq-port=$PORT --no-sandbox $EXTRA_FLAGS"
-    FINAL_CMD="$PMHQ_BIN --port=$PORT --sub-cmd=\"$SUB_CMD\""
+    local sub_cmd="$NODE_BIN --enable-source-maps $LLBOT_JS -- --pmhq-port=$PORT --no-sandbox $EXTRA_FLAGS"
+
+    log "启动中... (模式: $([ $USE_XVFB -eq 1 ] && echo "Headless" || echo "GUI"))"
 
     if [ $USE_XVFB -eq 1 ]; then
-        FINAL_CMD="env LD_PRELOAD=$SYS_LIBS $IM_ENV xvfb-run -a $FINAL_CMD"
+        env $IM_ENV xvfb-run -a "$PMHQ_BIN" --port="$PORT" --sub-cmd="$sub_cmd"
     else
-        FINAL_CMD="env LD_PRELOAD=$SYS_LIBS $IM_ENV PATH=$PATH $FINAL_CMD"
+        [ "$DISTRO" != "arch" ] && xhost +local:$(whoami) > /dev/null 2>&1
+        env $IM_ENV "$PMHQ_BIN" --port="$PORT" --sub-cmd="$sub_cmd"
     fi
-else
-    # Debian
-    SUB_CMD="$NODE_BIN --enable-source-maps $LLBOT_JS -- --pmhq-port=$PORT"
-    FINAL_CMD="sudo $PMHQ_BIN --port=$PORT --sub-cmd=\"$SUB_CMD\""
+}
 
-    if [ $USE_XVFB -eq 1 ]; then
-        FINAL_CMD="sudo xvfb-run $PMHQ_BIN --port=$PORT --sub-cmd=\"$SUB_CMD\""
-    fi
-fi
-
-log "启动中... (模式: $([ $USE_XVFB -eq 1 ] && echo "Headless" || echo "GUI"))"
-eval "$FINAL_CMD"
+run_llbot
