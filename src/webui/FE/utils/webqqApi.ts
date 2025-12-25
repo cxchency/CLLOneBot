@@ -145,7 +145,7 @@ export function createEventSource(onMessage: (event: any) => void, onError?: (er
   })
   
   eventSource.addEventListener('connected', () => {
-    console.log('WebQQ SSE 连接已建立')
+    // SSE 连接已建立
   })
   
   eventSource.onerror = (error) => {

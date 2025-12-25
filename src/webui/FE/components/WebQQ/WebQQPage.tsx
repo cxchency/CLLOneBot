@@ -87,12 +87,10 @@ const WebQQPage: React.FC = () => {
   
   // 回调设置函数 - 直接更新 ref 并处理待处理消息
   const handleSetNewMessageCallback = React.useCallback((callback: ((msg: RawMessage) => void) | null) => {
-    console.log('WebQQPage: 设置新消息回调', callback ? '有效' : 'null')
     onNewMessageRef.current = callback
     
     // 当回调就绪时，处理队列中的待处理消息
     if (callback && pendingMessagesRef.current.length > 0) {
-      console.log('处理待处理消息队列:', pendingMessagesRef.current.length, '条')
       const messages = [...pendingMessagesRef.current]
       pendingMessagesRef.current = []
       messages.forEach(msg => callback(msg))
@@ -104,8 +102,6 @@ const WebQQPage: React.FC = () => {
   useEffect(() => {
     const eventSource = createEventSource(
       (data) => {
-        console.log('SSE 收到原始数据:', data)
-        
         if (data.type === 'message-created' || data.type === 'message-sent') {
           const rawMessage: RawMessage = data.data
           
@@ -121,27 +117,14 @@ const WebQQPage: React.FC = () => {
           const chatKey = `${chatType}_${peerId}`
           const chat = currentChatRef.current
           
-          console.log('SSE 消息匹配:', { 
-            msgChatType: chatType, 
-            msgPeerId: peerId,
-            peerUin: rawMessage.peerUin,
-            peerUid: rawMessage.peerUid,
-            currentChatType: chat?.chatType, 
-            currentPeerId: chat?.peerId,
-            isMatch: chat && chat.chatType === chatType && chat.peerId === peerId,
-            hasCallback: !!onNewMessageRef.current
-          })
-          
           // 无论是否匹配当前聊天，都要缓存消息
           appendCachedMessage(chatType, peerId, rawMessage)
           
           if (chat && chat.chatType === chatType && chat.peerId === peerId) {
-            console.log('SSE 消息匹配成功，通知 ChatWindow')
             if (onNewMessageRef.current) {
               onNewMessageRef.current(rawMessage)
             } else {
               // 回调未就绪，加入待处理队列
-              console.log('回调未就绪，加入待处理队列')
               pendingMessagesRef.current.push(rawMessage)
             }
           } else {

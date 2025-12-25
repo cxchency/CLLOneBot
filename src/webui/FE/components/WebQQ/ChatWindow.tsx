@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react'
 import { createPortal } from 'react-dom'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { Users, Send, Image as ImageIcon, X, Loader2, AlertCircle, RefreshCw } from 'lucide-react'
+import { Users, Send, Image as ImageIcon, X, Loader2, AlertCircle, RefreshCw, Reply } from 'lucide-react'
 import type { ChatSession, RawMessage, MessageElement } from '../../types/webqq'
 import { getMessages, sendMessage, uploadImage, formatMessageTime, isEmptyMessage, isValidImageFormat, getSelfUid, getSelfUin } from '../../utils/webqqApi'
 import { useWebQQStore, hasVisitedChat, markChatVisited } from '../../stores/webqqStore'
@@ -34,6 +34,11 @@ const getProxyImageUrl = (url: string | undefined): string => {
 // 图片预览上下文
 const ImagePreviewContext = React.createContext<{
   showPreview: (url: string) => void
+} | null>(null)
+
+// 消息右键菜单上下文
+const MessageContextMenuContext = React.createContext<{
+  showMenu: (e: React.MouseEvent, message: RawMessage) => void
 } | null>(null)
 
 // 图片预览弹窗组件
@@ -128,6 +133,7 @@ const RawMessageBubble = memo<{ message: RawMessage; allMessages: RawMessage[] }
   const senderName = message.sendMemberName || message.sendNickName || message.senderUin
   const senderAvatar = `https://q1.qlogo.cn/g?b=qq&nk=${message.senderUin}&s=640`
   const timestamp = parseInt(message.msgTime) * 1000
+  const contextMenuContext = React.useContext(MessageContextMenuContext)
   
   if (!message.elements || !Array.isArray(message.elements)) return null
 
@@ -138,8 +144,13 @@ const RawMessageBubble = memo<{ message: RawMessage; allMessages: RawMessage[] }
   // 查找被引用的原消息
   const replySourceMsg = replyElement ? allMessages.find(m => m.msgId === replyElement.replayMsgId || m.msgSeq === replyElement.replayMsgSeq) : null
 
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault()
+    contextMenuContext?.showMenu(e, message)
+  }
+
   return (
-    <div className={`flex gap-2 ${isSelf ? 'flex-row-reverse' : ''}`}>
+    <div className={`flex gap-2 ${isSelf ? 'flex-row-reverse' : ''}`} onContextMenu={handleContextMenu}>
       <img src={senderAvatar} alt={senderName} loading="lazy" className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
       <div className={`flex flex-col ${isSelf ? 'items-end' : 'items-start'} max-w-[70%]`}>
         <span className="text-xs text-theme-hint mb-1">{senderName}</span>
@@ -211,15 +222,24 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
   const [sending, setSending] = useState(false)
   const [imagePreview, setImagePreview] = useState<{ file: File; url: string } | null>(null)
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null)
+  const [replyTo, setReplyTo] = useState<RawMessage | null>(null)
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; message: RawMessage } | null>(null)
   
   const imagePreviewContextValue = useMemo(() => ({
     showPreview: (url: string) => setPreviewImageUrl(url)
+  }), [])
+  
+  const messageContextMenuValue = useMemo(() => ({
+    showMenu: (e: React.MouseEvent, message: RawMessage) => {
+      setContextMenu({ x: e.clientX, y: e.clientY, message })
+    }
   }), [])
   
   const { getCachedMessages, setCachedMessages, appendCachedMessage } = useWebQQStore()
   
   const parentRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const sessionRef = useRef(session)
   const shouldScrollRef = useRef(true)
   const prevSessionKeyRef = useRef<string | null>(null)
@@ -411,14 +431,21 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
     if (!session || isEmptyMessage(inputText)) return
     setSending(true)
     const text = inputText.trim()
+    const currentReplyTo = replyTo
     setInputText('')
+    setReplyTo(null)
     shouldScrollRef.current = true
 
     const tempId = `temp_${Date.now()}`
     setTempMessages(prev => [...prev, { msgId: tempId, text, timestamp: Date.now(), status: 'sending' }])
 
     try {
-      await sendMessage({ chatType: session.chatType, peerId: session.peerId, content: [{ type: 'text', text }] })
+      const content: { type: 'text' | 'image' | 'reply'; text?: string; msgId?: string; msgSeq?: string }[] = []
+      if (currentReplyTo) {
+        content.push({ type: 'reply', msgId: currentReplyTo.msgId, msgSeq: currentReplyTo.msgSeq })
+      }
+      content.push({ type: 'text', text })
+      await sendMessage({ chatType: session.chatType, peerId: session.peerId, content })
       setTempMessages(prev => prev.filter(t => t.msgId !== tempId))
     } catch (e: any) {
       showToast('发送失败', 'error')
@@ -426,7 +453,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
     } finally {
       setSending(false)
     }
-  }, [session, inputText])
+  }, [session, inputText, replyTo])
 
   const handleImageSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -508,6 +535,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
 
   return (
     <ImagePreviewContext.Provider value={imagePreviewContextValue}>
+    <MessageContextMenuContext.Provider value={messageContextMenuValue}>
       <div className="flex flex-col h-full">
         <div className="flex items-center justify-between px-4 py-3 border-b border-theme-divider bg-theme-card">
           <div className="flex items-center gap-3">
@@ -569,11 +597,28 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
         </div>
       )}
 
+      {replyTo && (
+        <div className="px-4 py-2 border-t border-theme-divider bg-theme-item">
+          <div className="flex items-center gap-2">
+            <Reply size={16} className="text-pink-500 flex-shrink-0" />
+            <div className="flex-1 min-w-0 text-sm text-theme-secondary truncate">
+              回复 {replyTo.sendMemberName || replyTo.sendNickName || replyTo.senderUin}：
+              {replyTo.elements?.filter(el => !el.replyElement).map((el, i) => {
+                if (el.textElement) return <span key={i}>{el.textElement.content}</span>
+                if (el.picElement) return <span key={i}>[图片]</span>
+                return null
+              })}
+            </div>
+            <button onClick={() => setReplyTo(null)} className="p-1 text-theme-hint hover:text-theme rounded"><X size={16} /></button>
+          </div>
+        </div>
+      )}
+
       <div className="px-4 py-3 border-t border-theme-divider bg-theme-card">
         <div className="flex items-center gap-2">
           <input type="file" ref={fileInputRef} onChange={handleImageSelect} accept="image/jpeg,image/png,image/gif" className="hidden" />
           <div className="flex-1">
-            <textarea value={inputText} onChange={(e) => setInputText(e.target.value)} onKeyDown={handleKeyDown} onPaste={handlePaste} placeholder="输入消息..." disabled={sending} rows={1} className="w-full px-4 py-2.5 bg-theme-input border border-theme-input rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-pink-500/20 disabled:opacity-50 text-theme placeholder:text-theme-hint" style={{ minHeight: '42px', maxHeight: '120px' }} />
+            <textarea ref={textareaRef} value={inputText} onChange={(e) => setInputText(e.target.value)} onKeyDown={handleKeyDown} onPaste={handlePaste} placeholder="输入消息..." disabled={sending} rows={1} className="w-full px-4 py-2.5 bg-theme-input border border-theme-input rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-pink-500/20 disabled:opacity-50 text-theme placeholder:text-theme-hint" style={{ minHeight: '42px', maxHeight: '120px' }} />
           </div>
           <button onClick={() => fileInputRef.current?.click()} disabled={sending} className="p-2.5 text-theme-muted hover:text-pink-500 hover:bg-pink-50 dark:hover:bg-pink-900/30 rounded-xl disabled:opacity-50" title="发送图片">
             <ImageIcon size={20} />
@@ -584,7 +629,30 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
         </div>
       </div>
       </div>
+      
+      {/* 消息右键菜单 */}
+      {contextMenu && createPortal(
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setContextMenu(null)} onContextMenu={(e) => { e.preventDefault(); setContextMenu(null) }} />
+          <div
+            className="fixed z-50 bg-theme-card border border-theme-divider rounded-lg shadow-lg py-1 min-w-[100px]"
+            style={{ left: contextMenu.x, top: contextMenu.y }}
+            onContextMenu={(e) => e.preventDefault()}
+          >
+            <button
+              onClick={() => { setReplyTo(contextMenu.message); setContextMenu(null); textareaRef.current?.focus() }}
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-theme hover:bg-theme-item-hover transition-colors"
+            >
+              <Reply size={14} />
+              回复
+            </button>
+          </div>
+        </>,
+        document.body
+      )}
+      
       <ImagePreviewModal url={previewImageUrl} onClose={() => setPreviewImageUrl(null)} />
+    </MessageContextMenuContext.Provider>
     </ImagePreviewContext.Provider>
   )
 }

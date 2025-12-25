@@ -580,7 +580,7 @@ export class WebUIServer extends Service {
         const { chatType, peerId, content } = req.body as {
           chatType: string
           peerId: string
-          content: { type: string; text?: string; imagePath?: string }[]
+          content: { type: string; text?: string; imagePath?: string; msgId?: string; msgSeq?: string }[]
         }
 
         if (!chatType || !peerId || !content || content.length === 0) {
@@ -609,7 +609,19 @@ export class WebUIServer extends Service {
 
         const elements: any[] = []
         for (const item of content) {
-          if (item.type === 'text' && item.text) {
+          if (item.type === 'reply' && item.msgId && item.msgSeq) {
+            elements.push({
+              elementType: ElementType.Reply,
+              elementId: '',
+              replyElement: {
+                replayMsgId: item.msgId,
+                replayMsgSeq: item.msgSeq,
+                sourceMsgText: '',
+                senderUid: '',
+                senderUidStr: ''
+              }
+            })
+          } else if (item.type === 'text' && item.text) {
             elements.push({
               elementType: ElementType.Text,
               elementId: '',
@@ -825,6 +837,8 @@ export class WebUIServer extends Service {
 
   // 设置消息事件监听
   private setupMessageListener() {
+    this.ctx.logger.info('WebQQ: 设置消息事件监听')
+    
     // 监听新消息事件 - 直接推送原始 RawMessage
     this.ctx.on('nt/message-created', (message: RawMessage) => {
       if (this.sseClients.size === 0) return
@@ -835,8 +849,18 @@ export class WebUIServer extends Service {
     })
     
     // 监听自己发送的消息 - 直接推送原始 RawMessage
-    this.ctx.on('nt/message-sent', (message: RawMessage) => {
+    this.ctx.on('nt/message-sent', async (message: RawMessage) => {
+      this.ctx.logger.info('WebQQ: 收到 nt/message-sent 事件, sseClients:', this.sseClients.size)
       if (this.sseClients.size === 0) return
+      
+      // 补充 peerUin（私聊时可能为空）
+      if (message.chatType === ChatType.C2C && !message.peerUin && message.peerUid) {
+        const uin = await this.ctx.ntUserApi.getUinByUid(message.peerUid)
+        if (uin) {
+          message.peerUin = uin
+        }
+      }
+      
       this.ctx.logger.info('WebQQ SSE 推送自己发送的消息:', {
         msgId: message.msgId,
         chatType: message.chatType,

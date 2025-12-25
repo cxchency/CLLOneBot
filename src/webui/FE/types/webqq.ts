@@ -190,7 +190,7 @@ export interface MessagesResponse {
 export interface SendMessageRequest {
   chatType: 'friend' | 'group'
   peerId: string
-  content: { type: 'text' | 'image'; text?: string; imagePath?: string }[]
+  content: { type: 'text' | 'image' | 'reply'; text?: string; imagePath?: string; msgId?: string; msgSeq?: string }[]
 }
 
 // 上传响应
