@@ -3,8 +3,8 @@ import { createPortal } from 'react-dom'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { Users, Reply, Trash2, AtSign, Hand, User, UserMinus, VolumeX, Award, Loader2 } from 'lucide-react'
 import type { ChatSession, RawMessage } from '../../types/webqq'
-import { getMessages, getSelfUid, recallMessage, sendPoke, getUserProfile, UserProfile, getGroupMembers, kickGroupMember, getGroupProfile, GroupProfile, quitGroup, muteGroupMember, setMemberTitle } from '../../utils/webqqApi'
-import { useWebQQStore, hasVisitedChat, markChatVisited, unmarkChatVisited } from '../../stores/webqqStore'
+import { getMessages, getSelfUid, recallMessage, sendPoke, getUserProfile, UserProfile, kickGroupMember, getGroupProfile, GroupProfile, quitGroup, muteGroupMember, setMemberTitle } from '../../utils/webqqApi'
+import { useWebQQStore, hasVisitedChat, markChatVisited } from '../../stores/webqqStore'
 import { getCachedMessages, setCachedMessages, appendCachedMessage, removeCachedMessage } from '../../utils/messageDb'
 import { showToast } from '../common'
 
@@ -67,18 +67,18 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
     }
   }), [])
   
-  const { getCachedMembers, setCachedMembers } = useWebQQStore()
+  const { getCachedMembers, setCachedMembers, fetchGroupMembers } = useWebQQStore()
   
+  // 预加载群成员到缓存（不需要本地状态）
   useEffect(() => {
     if (session?.chatType === 2) {
       const groupCode = session.peerId
+      // 如果没有缓存，触发加载（结果会存入全局缓存）
       if (!getCachedMembers(groupCode)) {
-        getGroupMembers(groupCode).then(members => {
-          setCachedMembers(groupCode, members)
-        }).catch(() => {})
+        fetchGroupMembers(groupCode).catch(() => {})
       }
     }
-  }, [session?.chatType, session?.peerId, getCachedMembers, setCachedMembers])
+  }, [session?.chatType, session?.peerId, getCachedMembers, fetchGroupMembers])
   
   const parentRef = useRef<HTMLDivElement>(null)
   const chatInputRef = useRef<any>(null)
@@ -91,6 +91,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
   const isLoadingMoreRef = useRef(false)
   const scrollToMsgIdRef = useRef<string | null>(null)
   const isFirstMountRef = useRef(true)
+  const loadVersionRef = useRef(0)  // 用于检查消息加载的版本
   
   useEffect(() => { sessionRef.current = session }, [session])
 
@@ -202,6 +203,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
     if (!session) return
     const requestChatType = session.chatType
     const requestPeerId = session.peerId
+    const version = ++loadVersionRef.current
 
     if (beforeMsgSeq) setLoadingMore(true)
     else setLoading(true)
@@ -210,25 +212,15 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
 
     try {
       const result = await getMessages(requestChatType, requestPeerId, beforeMsgSeq)
-      const currentSession = sessionRef.current
-      const sessionChanged = !currentSession || currentSession.chatType !== requestChatType || currentSession.peerId !== requestPeerId
+      
+      // 检查版本号，如果不匹配说明已经切换了会话
+      if (loadVersionRef.current !== version) {
+        return
+      }
       
       const validMessages = result.messages.filter((msg): msg is RawMessage => 
         msg !== null && msg !== undefined && msg.elements && Array.isArray(msg.elements)
       )
-      
-      if (sessionChanged) {
-        unmarkChatVisited(requestChatType, requestPeerId)
-        const sessionKey = getSessionKey(requestChatType, requestPeerId)
-        const existingCache = messageCacheRef.current.get(sessionKey) || []
-        const existingIds = new Set(existingCache.map(m => m.msgId))
-        const newMsgs = validMessages.filter(m => !existingIds.has(m.msgId))
-        const merged = beforeMsgSeq ? [...newMsgs, ...existingCache] : [...existingCache, ...newMsgs]
-        merged.sort((a, b) => parseInt(a.msgTime) - parseInt(b.msgTime))
-        messageCacheRef.current.set(sessionKey, merged)
-        setCachedMessages(requestChatType, requestPeerId, merged)
-        return
-      }
       
       setMessages(prev => {
         const existingIds = new Set(prev.map(m => m.msgId))
@@ -241,12 +233,13 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
       setHasMore(result.hasMore)
     } catch (e: any) {
       scrollToMsgIdRef.current = null
-      const currentSession = sessionRef.current
-      if (!currentSession || currentSession.chatType !== requestChatType || currentSession.peerId !== requestPeerId) return
+      if (loadVersionRef.current !== version) return
       showToast(beforeMsgSeq ? '加载更多消息失败' : '加载消息失败', 'error')
     } finally {
-      setLoading(false)
-      setLoadingMore(false)
+      if (loadVersionRef.current === version) {
+        setLoading(false)
+        setLoadingMore(false)
+      }
     }
   }, [session, messages])
 
@@ -261,6 +254,9 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
 
   useEffect(() => {
     if (session) {
+      // 切换会话时递增版本号，使旧的请求失效
+      ++loadVersionRef.current
+      
       const sessionKey = getSessionKey(session.chatType, session.peerId)
       const currentChatType = session.chatType
       const currentPeerId = session.peerId
@@ -497,7 +493,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
         <>
           <div className="fixed inset-0 z-40" onClick={() => setContextMenu(null)} onContextMenu={(e) => { e.preventDefault(); setContextMenu(null) }} />
           <div className="fixed z-50 bg-popup backdrop-blur-sm border border-theme-divider rounded-lg shadow-lg py-1 min-w-[100px]" style={{ left: contextMenu.x, top: Math.min(contextMenu.y, window.innerHeight - 120) }} onContextMenu={(e) => e.preventDefault()}>
-            <button onClick={() => { setReplyTo(contextMenu.message); setContextMenu(null) }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-theme hover:bg-theme-item-hover transition-colors">
+            <button onClick={() => { setReplyTo(contextMenu.message); setContextMenu(null); setTimeout(() => chatInputRef.current?.focus?.(), 50) }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-theme hover:bg-theme-item-hover transition-colors">
               <Reply size={14} /> 回复
             </button>
             {(() => {

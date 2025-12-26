@@ -120,6 +120,7 @@ export const MentionPicker: React.FC<MentionPickerProps> = ({
                 src={member.avatar || `https://q1.qlogo.cn/g?b=qq&nk=${member.uin}&s=40`}
                 alt=""
                 className="w-7 h-7 rounded-full flex-shrink-0"
+                loading="lazy"
               />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1">

@@ -15,7 +15,7 @@ export interface RichInputRef {
   focus: () => void
   clear: () => void
   insertFace: (faceId: number) => void
-  insertImage: (file: File, url: string) => void
+  insertImage: (file: File | null, url: string) => void
   insertAt: (uid: string, uin: string, name: string) => void
   getContent: () => RichInputItem[]
   isEmpty: () => boolean
@@ -219,7 +219,7 @@ export const RichInput = forwardRef<RichInputRef, RichInputProps>(({
   }, [onChange, parseContent, cancelMention])
 
   // 插入图片
-  const insertImage = useCallback((file: File, url: string) => {
+  const insertImage = useCallback((file: File | null, url: string) => {
     const editor = editorRef.current
     if (!editor) return
     
@@ -229,7 +229,9 @@ export const RichInput = forwardRef<RichInputRef, RichInputProps>(({
     span.contentEditable = 'false'
     span.dataset.type = 'image'
     span.dataset.imageUrl = url
-    ;(span as any).__file = file
+    if (file) {
+      ;(span as any).__file = file
+    }
     span.className = 'inline-block align-middle mx-0.5 select-all'
     span.innerHTML = `<img src="${url}" alt="[图片]" class="h-16 max-w-[200px] rounded inline-block object-cover" draggable="false" />`
     

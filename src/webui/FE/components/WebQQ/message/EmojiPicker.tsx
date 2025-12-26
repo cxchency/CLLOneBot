@@ -1,5 +1,4 @@
-import React, { useState } from 'react'
-import { X } from 'lucide-react'
+import React, { useState, useEffect, useRef } from 'react'
 
 // 可用的表情 ID 列表（基于 public/face 目录）
 const FACE_IDS = [
@@ -16,6 +15,24 @@ const FACE_IDS = [
   350, 351, 352, 353, 354, 355, 356, 357, 358, 359, 392, 393, 394, 395
 ]
 
+const RECENT_EMOJI_KEY = 'webqq_recent_emojis'
+const MAX_RECENT = 10
+
+function getRecentEmojis(): number[] {
+  try {
+    const stored = localStorage.getItem(RECENT_EMOJI_KEY)
+    return stored ? JSON.parse(stored) : []
+  } catch {
+    return []
+  }
+}
+
+function addRecentEmoji(faceId: number) {
+  const recent = getRecentEmojis().filter(id => id !== faceId)
+  recent.unshift(faceId)
+  localStorage.setItem(RECENT_EMOJI_KEY, JSON.stringify(recent.slice(0, MAX_RECENT)))
+}
+
 interface EmojiPickerProps {
   onSelect: (faceId: number) => void
   onClose: () => void
@@ -24,24 +41,55 @@ interface EmojiPickerProps {
 
 export const EmojiPicker: React.FC<EmojiPickerProps> = ({ onSelect, onClose, position }) => {
   const [loadedFaces, setLoadedFaces] = useState<Set<number>>(new Set())
+  const [recentEmojis, setRecentEmojis] = useState<number[]>(getRecentEmojis())
+  const pickerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
+        onClose()
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [onClose])
+
+  const handleSelect = (faceId: number) => {
+    addRecentEmoji(faceId)
+    setRecentEmojis(getRecentEmojis())
+    onSelect(faceId)
+  }
 
   return (
     <div 
+      ref={pickerRef}
       className="absolute bottom-full left-0 mb-2 bg-theme-card border border-theme-divider rounded-xl shadow-xl z-50"
       style={position ? { left: position.x, bottom: position.y } : undefined}
     >
-      <div className="flex items-center justify-between px-3 py-2 border-b border-theme-divider">
-        <span className="text-sm font-medium text-theme">表情</span>
-        <button onClick={onClose} className="p-1 hover:bg-theme-item rounded transition-colors">
-          <X size={14} className="text-theme-hint" />
-        </button>
-      </div>
+      <div className="p-2 border-b border-theme-divider text-sm text-theme-secondary">表情</div>
       <div className="p-2 max-h-[280px] overflow-y-auto w-[320px]">
+        {recentEmojis.length > 0 && (
+          <>
+            <div className="text-xs text-theme-hint mb-1">最近使用</div>
+            <div className="grid grid-cols-8 gap-1 mb-2 pb-2 border-b border-theme-divider">
+              {recentEmojis.map(faceId => (
+                <button
+                  key={`recent-${faceId}`}
+                  onClick={() => handleSelect(faceId)}
+                  className="w-8 h-8 flex items-center justify-center hover:bg-theme-item rounded transition-colors"
+                  title={`表情 ${faceId}`}
+                >
+                  <img src={`/face/${faceId}.png`} alt={`表情${faceId}`} className="w-6 h-6" />
+                </button>
+              ))}
+            </div>
+          </>
+        )}
         <div className="grid grid-cols-8 gap-1">
           {FACE_IDS.map(faceId => (
             <button
               key={faceId}
-              onClick={() => onSelect(faceId)}
+              onClick={() => handleSelect(faceId)}
               className="w-8 h-8 flex items-center justify-center hover:bg-theme-item rounded transition-colors"
               title={`表情 ${faceId}`}
             >

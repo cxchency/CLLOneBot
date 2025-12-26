@@ -192,6 +192,19 @@ export async function uploadImage(file: File): Promise<UploadResponse> {
   return response.data!
 }
 
+// 通过 URL 上传图片（后端下载）
+export async function uploadImageByUrl(imageUrl: string): Promise<UploadResponse> {
+  const response = await apiFetch<UploadResponse>('/api/webqq/upload', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ imageUrl })
+  })
+  if (!response.success) {
+    throw new Error(response.message || '上传图片失败')
+  }
+  return response.data!
+}
+
 // 上传文件
 export async function uploadFile(file: File): Promise<{ filePath: string; fileName: string; fileSize: number }> {
   const formData = new FormData()

@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react'
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Search, Crown, Shield, Loader2, AtSign, Hand, User } from 'lucide-react'
 import type { GroupMemberItem } from '../../../types/webqq'
-import { getGroupMembers, filterMembers, sendPoke, getUserProfile, UserProfile } from '../../../utils/webqqApi'
+import { filterMembers, sendPoke, getUserProfile, UserProfile } from '../../../utils/webqqApi'
 import { useWebQQStore } from '../../../stores/webqqStore'
 import { showToast } from '../../common'
 import { UserProfileCard } from '../profile/UserProfileCard'
@@ -34,7 +34,7 @@ const MemberListItem: React.FC<MemberListItemProps> = ({ member, onContextMenu }
 
   return (
     <div className="flex items-center gap-3 px-3 py-2 hover:bg-theme-item-hover transition-colors cursor-pointer" onContextMenu={onContextMenu}>
-      <img src={member.avatar} alt={displayName} className="w-8 h-8 rounded-full object-cover flex-shrink-0" onError={(e: React.SyntheticEvent<HTMLImageElement>) => { e.currentTarget.src = `https://q1.qlogo.cn/g?b=qq&nk=${member.uin}&s=640` }} />
+      <img src={member.avatar} alt={displayName} className="w-8 h-8 rounded-full object-cover flex-shrink-0" loading="lazy" onError={(e: React.SyntheticEvent<HTMLImageElement>) => { e.currentTarget.src = `https://q1.qlogo.cn/g?b=qq&nk=${member.uin}&s=640` }} />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
           <span className="text-sm text-theme truncate">{displayName}</span>
@@ -56,41 +56,45 @@ const GroupMemberPanel: React.FC<GroupMemberPanelProps> = ({ groupCode, onClose,
   const [contextMenu, setContextMenu] = useState<MemberContextMenuInfo | null>(null)
   const [userProfile, setUserProfile] = useState<{ profile: UserProfile | null; loading: boolean; position: { x: number; y: number } } | null>(null)
   
-  const { getCachedMembers, setCachedMembers } = useWebQQStore()
+  const { getCachedMembers, fetchGroupMembers } = useWebQQStore()
+  
+  // 用 ref 跟踪当前 groupCode，用于异步回调检查
+  const currentGroupCodeRef = useRef(groupCode)
+  useEffect(() => { currentGroupCodeRef.current = groupCode }, [groupCode])
 
-  const refreshMembers = useCallback(async () => {
-    try {
-      const data = await getGroupMembers(groupCode)
-      setMembers(data)
-      setCachedMembers(groupCode, data)
-    } catch (e) {
-      console.error('Failed to refresh members:', e)
-    }
-  }, [groupCode, setCachedMembers])
-
-  const loadMembers = useCallback(async () => {
-    const cachedMembers = getCachedMembers(groupCode)
-    if (cachedMembers && cachedMembers.length > 0) {
-      setMembers(cachedMembers)
-      refreshMembers()
+  // 加载群成员
+  useEffect(() => {
+    const targetGroupCode = groupCode
+    
+    // 先检查缓存（同步）
+    const cached = getCachedMembers(targetGroupCode)
+    if (cached) {
+      setMembers(cached)
+      setLoading(false)
+      setError(null)
       return
     }
     
+    // 没有缓存，需要加载
     setLoading(true)
     setError(null)
-    try {
-      const data = await getGroupMembers(groupCode)
-      setMembers(data)
-      setCachedMembers(groupCode, data)
-    } catch (e: any) {
-      setError(e.message || '加载群成员失败')
-      showToast('加载群成员失败', 'error')
-    } finally {
-      setLoading(false)
-    }
-  }, [groupCode, getCachedMembers, setCachedMembers, refreshMembers])
-
-  useEffect(() => { loadMembers() }, [loadMembers])
+    setMembers([])
+    
+    fetchGroupMembers(targetGroupCode)
+      .then(data => {
+        if (currentGroupCodeRef.current === targetGroupCode) {
+          setMembers(data)
+          setLoading(false)
+        }
+      })
+      .catch((e: any) => {
+        if (currentGroupCodeRef.current === targetGroupCode) {
+          setError(e.message || '加载群成员失败')
+          showToast('加载群成员失败', 'error')
+          setLoading(false)
+        }
+      })
+  }, [groupCode, getCachedMembers, fetchGroupMembers])
 
   const filteredMembers = useMemo(() => filterMembers(members, searchQuery), [members, searchQuery])
 

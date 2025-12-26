@@ -12,7 +12,7 @@ import { selfInfo, LOG_DIR, TEMP_DIR } from '@/common/globalVars'
 import { getAvailablePort } from '@/common/utils/port'
 import { pmhq } from '@/ntqqapi/native/pmhq'
 import { ReqConfig, ResConfig } from './types'
-import { appendFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs'
+import { appendFileSync, writeFileSync, existsSync, mkdirSync, promises as fsPromises } from 'node:fs'
 import { ChatType, ElementType, RawMessage, MessageElement } from '@/ntqqapi/types'
 import { SendElement } from '@/ntqqapi/entities'
 import multer from 'multer'
@@ -88,18 +88,19 @@ export class WebUIServer extends Service {
   public port?: number = undefined
   private sseClients: Set<Response> = new Set()
   private upload: multer.Multer
+  private uploadDir: string
   static inject = ['ntLoginApi', 'ntFriendApi', 'ntGroupApi', 'ntSystemApi', 'ntMsgApi', 'ntUserApi', 'ntFileApi']
 
   constructor(ctx: Context, public config: WebUIServerConfig) {
     super(ctx, 'webuiServer', true)
     // 配置 multer 用于文件上传
-    const uploadDir = path.join(TEMP_DIR, 'webqq-uploads')
-    if (!existsSync(uploadDir)) {
-      mkdirSync(uploadDir, { recursive: true })
+    this.uploadDir = path.join(TEMP_DIR, 'webqq-uploads')
+    if (!existsSync(this.uploadDir)) {
+      mkdirSync(this.uploadDir, { recursive: true })
     }
     this.upload = multer({
       storage: multer.diskStorage({
-        destination: uploadDir,
+        destination: this.uploadDir,
         filename: (req, file, cb) => {
           const ext = path.extname(file.originalname)
           cb(null, `${randomUUID()}${ext}`)
@@ -596,6 +597,29 @@ export class WebUIServer extends Service {
     // 上传图片
     this.app.post('/api/webqq/upload', this.upload.single('image'), async (req, res) => {
       try {
+        // 支持通过 URL 上传
+        const imageUrl = req.body?.imageUrl as string
+        if (imageUrl) {
+          const response = await fetch(imageUrl)
+          if (!response.ok) {
+            res.status(400).json({ success: false, message: '下载图片失败' })
+            return
+          }
+          const buffer = Buffer.from(await response.arrayBuffer())
+          const ext = imageUrl.includes('.gif') ? '.gif' : imageUrl.includes('.png') ? '.png' : '.jpg'
+          const filename = `url_${Date.now()}${ext}`
+          const filePath = path.join(this.uploadDir, filename)
+          await fsPromises.writeFile(filePath, buffer)
+          res.json({
+            success: true,
+            data: {
+              imagePath: filePath,
+              filename
+            }
+          })
+          return
+        }
+
         if (!req.file) {
           res.status(400).json({ success: false, message: '没有上传文件' })
           return

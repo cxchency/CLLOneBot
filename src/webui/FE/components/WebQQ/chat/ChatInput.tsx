@@ -1,14 +1,16 @@
 import React, { useRef, useCallback, useState, forwardRef, useImperativeHandle, useEffect } from 'react'
-import { Send, Loader2, Smile, Image as ImageIcon, Paperclip, Reply, X } from 'lucide-react'
-import { RichInput, RichInputRef, RichInputItem, MentionState } from './RichInput'
+import { Send, Loader2, Smile, Image as ImageIcon, Paperclip, Reply, X, Sticker } from 'lucide-react'
+import { RichInput, type RichInputRef, type RichInputItem, type MentionState } from './RichInput'
 import { MentionPicker } from './MentionPicker'
-import { EmojiPicker } from '../message/EmojiPicker'
-import { sendMessage, uploadImage, uploadFile, isValidImageFormat, getGroupMembers } from '../../../utils/webqqApi'
+import { EmojiPicker, FavEmojiPicker, type FavEmoji } from '../message'
+import { sendMessage, uploadImage, uploadImageByUrl, uploadFile, isValidImageFormat } from '../../../utils/webqqApi'
+import { useWebQQStore } from '../../../stores/webqqStore'
 import { showToast } from '../../common'
 import type { ChatSession, RawMessage, GroupMemberItem } from '../../../types/webqq'
 
 export interface ChatInputRef {
   insertAt: (uid: string, uin: string, name: string) => void
+  focus: () => void
 }
 
 interface ChatInputProps {
@@ -29,6 +31,7 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>((props, ref) =
   const fileInputRef = useRef<HTMLInputElement>(null)
   const fileUploadInputRef = useRef<HTMLInputElement>(null)
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
+  const [showFavEmojiPicker, setShowFavEmojiPicker] = useState(false)
   const [sending, setSending] = useState(false)
   const [hasContent, setHasContent] = useState(false)
   
@@ -36,27 +39,57 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>((props, ref) =
   const [mentionState, setMentionState] = useState<MentionState>({ active: false, query: '', position: { top: 0, left: 0 } })
   const [groupMembers, setGroupMembers] = useState<GroupMemberItem[]>([])
   const [membersLoading, setMembersLoading] = useState(false)
-  const membersLoadedRef = useRef<string | null>(null)
+  
+  const { getCachedMembers, fetchGroupMembers } = useWebQQStore()
+  
+  // 用 ref 跟踪当前 session 的 peerId
+  const currentPeerIdRef = useRef<string | null>(null)
 
   useImperativeHandle(ref, () => ({
     insertAt: (uid: string, uin: string, name: string) => {
       richInputRef.current?.insertAt(uid, uin, name)
+    },
+    focus: () => {
+      richInputRef.current?.focus()
     }
   }), [])
 
-  // 当群聊会话变化时，预加载群成员
+  // 当群聊会话变化时，加载群成员（使用全局缓存）
   useEffect(() => {
-    if (session?.chatType === 2 && session.peerId !== membersLoadedRef.current) {
-      setMembersLoading(true)
-      getGroupMembers(session.peerId)
-        .then(members => {
-          setGroupMembers(members)
-          membersLoadedRef.current = session.peerId
-        })
-        .catch(() => setGroupMembers([]))
-        .finally(() => setMembersLoading(false))
+    const groupCode = session?.chatType === 2 ? session.peerId : null
+    currentPeerIdRef.current = groupCode
+    
+    if (!groupCode) {
+      setGroupMembers([])
+      setMembersLoading(false)
+      return
     }
-  }, [session?.chatType, session?.peerId])
+    
+    // 先检查缓存（同步）
+    const cached = getCachedMembers(groupCode)
+    if (cached) {
+      setGroupMembers(cached)
+      setMembersLoading(false)
+      return
+    }
+    
+    // 没有缓存，需要加载
+    setMembersLoading(true)
+    setGroupMembers([])
+    
+    fetchGroupMembers(groupCode)
+      .then(members => {
+        if (currentPeerIdRef.current === groupCode) {
+          setGroupMembers(members)
+          setMembersLoading(false)
+        }
+      })
+      .catch(() => {
+        if (currentPeerIdRef.current === groupCode) {
+          setMembersLoading(false)
+        }
+      })
+  }, [session?.chatType, session?.peerId, getCachedMembers, fetchGroupMembers])
 
   // 处理 @ 状态变化
   const handleMentionChange = useCallback((state: MentionState) => {
@@ -110,9 +143,15 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>((props, ref) =
       for (const item of items) {
         if (item.type === 'text' && item.content) content.push({ type: 'text', text: item.content })
         else if (item.type === 'face' && item.faceId !== undefined) content.push({ type: 'face', faceId: item.faceId })
-        else if (item.type === 'image' && item.imageFile) {
-          const uploadResult = await uploadImage(item.imageFile)
-          content.push({ type: 'image', imagePath: uploadResult.imagePath })
+        else if (item.type === 'image') {
+          if (item.imageFile) {
+            const uploadResult = await uploadImage(item.imageFile)
+            content.push({ type: 'image', imagePath: uploadResult.imagePath })
+          } else if (item.imageUrl) {
+            // 没有 file，通过 URL 上传（收藏表情等）
+            const uploadResult = await uploadImageByUrl(item.imageUrl)
+            content.push({ type: 'image', imagePath: uploadResult.imagePath })
+          }
         } else if (item.type === 'at' && item.atUid) content.push({ type: 'at', uid: item.atUid, uin: item.atUin, name: item.atName })
       }
       
@@ -132,6 +171,13 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>((props, ref) =
   const handleEmojiSelect = useCallback((faceId: number) => {
     richInputRef.current?.insertFace(faceId)
     setShowEmojiPicker(false)
+  }, [])
+
+  // 选择收藏表情 - 插入到输入框
+  const handleFavEmojiSelect = useCallback((emoji: FavEmoji) => {
+    setShowFavEmojiPicker(false)
+    // 插入图片，file 为 null，发送时通过 URL 上传
+    richInputRef.current?.insertImage(null, emoji.url)
   }, [])
 
   const handleImageSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -211,10 +257,13 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>((props, ref) =
         </div>
       )}
 
-      <div className="px-4 py-3">
+      <div className="px-4 pt-0.5 pb-3">
         <div className="flex items-center gap-1 mb-2 relative">
-          <button onClick={() => setShowEmojiPicker(!showEmojiPicker)} disabled={sending} className={`p-2 rounded-lg transition-colors disabled:opacity-50 ${showEmojiPicker ? 'text-pink-500 bg-pink-50 dark:bg-pink-900/30' : 'text-theme-muted hover:text-pink-500 hover:bg-pink-50 dark:hover:bg-pink-900/30'}`} title="表情">
+          <button onClick={() => { setShowEmojiPicker(!showEmojiPicker); setShowFavEmojiPicker(false) }} disabled={sending} className={`p-2 rounded-lg transition-colors disabled:opacity-50 ${showEmojiPicker ? 'text-pink-500 bg-pink-50 dark:bg-pink-900/30' : 'text-theme-muted hover:text-pink-500 hover:bg-pink-50 dark:hover:bg-pink-900/30'}`} title="表情">
             <Smile size={18} />
+          </button>
+          <button onClick={() => { setShowFavEmojiPicker(!showFavEmojiPicker); setShowEmojiPicker(false) }} disabled={sending} className={`p-2 rounded-lg transition-colors disabled:opacity-50 ${showFavEmojiPicker ? 'text-pink-500 bg-pink-50 dark:bg-pink-900/30' : 'text-theme-muted hover:text-pink-500 hover:bg-pink-50 dark:hover:bg-pink-900/30'}`} title="收藏表情">
+            <Sticker size={18} />
           </button>
           <button onClick={() => fileInputRef.current?.click()} disabled={sending} className="p-2 text-theme-muted hover:text-pink-500 hover:bg-pink-50 dark:hover:bg-pink-900/30 rounded-lg transition-colors disabled:opacity-50" title="图片">
             <ImageIcon size={18} />
@@ -223,6 +272,7 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>((props, ref) =
             <Paperclip size={18} />
           </button>
           {showEmojiPicker && <EmojiPicker onSelect={handleEmojiSelect} onClose={() => setShowEmojiPicker(false)} />}
+          {showFavEmojiPicker && <FavEmojiPicker onSelect={handleFavEmojiSelect} onClose={() => setShowFavEmojiPicker(false)} />}
         </div>
 
         <div className="flex items-end gap-2 relative">

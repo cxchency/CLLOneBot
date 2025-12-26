@@ -8,6 +8,9 @@ const CACHE_EXPIRY_MS = 60 * 60 * 1000
 // 群成员缓存过期时间（30分钟）
 const MEMBERS_CACHE_EXPIRY_MS = 30 * 60 * 1000
 
+// 全局加载中的 Promise，避免重复请求
+const loadingMembersPromises = new Map<string, Promise<GroupMemberItem[]>>()
+
 interface MembersCacheEntry {
   members: GroupMemberItem[]
   timestamp: number
@@ -100,6 +103,7 @@ interface WebQQState {
   // 群成员缓存操作
   getCachedMembers: (groupCode: string) => GroupMemberItem[] | null
   setCachedMembers: (groupCode: string, members: GroupMemberItem[]) => void
+  fetchGroupMembers: (groupCode: string) => Promise<GroupMemberItem[]>
   
   // 群成员面板操作
   setShowMemberPanel: (show: boolean) => void
@@ -221,6 +225,39 @@ export const useWebQQStore = create<WebQQState>()(
           }
         }
       }),
+      
+      // 统一的获取群成员方法（带缓存和去重）
+      fetchGroupMembers: async (groupCode) => {
+        const state = get()
+        
+        // 1. 检查缓存
+        const cached = state.getCachedMembers(groupCode)
+        if (cached) {
+          return cached
+        }
+        
+        // 2. 检查是否正在加载
+        const existingPromise = loadingMembersPromises.get(groupCode)
+        if (existingPromise) {
+          return existingPromise
+        }
+        
+        // 3. 发起新请求
+        const { getGroupMembers } = await import('../utils/webqqApi')
+        const promise = getGroupMembers(groupCode)
+          .then(members => {
+            get().setCachedMembers(groupCode, members)
+            loadingMembersPromises.delete(groupCode)
+            return members
+          })
+          .catch(err => {
+            loadingMembersPromises.delete(groupCode)
+            throw err
+          })
+        
+        loadingMembersPromises.set(groupCode, promise)
+        return promise
+      },
       
       // 群成员面板操作
       setShowMemberPanel: (show) => set({ showMemberPanel: show }),
