@@ -29,7 +29,6 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>((props, ref) =
   const fileInputRef = useRef<HTMLInputElement>(null)
   const fileUploadInputRef = useRef<HTMLInputElement>(null)
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
-  const [pendingFile, setPendingFile] = useState<{ file: File; name: string; size: number } | null>(null)
   const [sending, setSending] = useState(false)
   const [hasContent, setHasContent] = useState(false)
   
@@ -83,16 +82,13 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>((props, ref) =
     if (!session || !richInputRef.current) return
     const items = richInputRef.current.getContent()
     const isEmpty = richInputRef.current.isEmpty()
-    const hasFile = !!pendingFile
-    if (isEmpty && !hasFile) return
+    if (isEmpty) return
     
     setSending(true)
     onSendStart()
     const currentReplyTo = replyTo
-    const currentFile = pendingFile
     richInputRef.current.clear()
     onReplyCancel()
-    setPendingFile(null)
     setHasContent(false)
 
     const previewText = items.map(item => {
@@ -101,7 +97,7 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>((props, ref) =
       if (item.type === 'image') return '[图片]'
       if (item.type === 'at') return `@${item.atName}`
       return ''
-    }).join('') || (currentFile ? `[文件] ${currentFile.name}` : '')
+    }).join('')
     
     const tempId = `temp_${Date.now()}`
     const imageItem = items.find(i => i.type === 'image')
@@ -120,11 +116,6 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>((props, ref) =
         } else if (item.type === 'at' && item.atUid) content.push({ type: 'at', uid: item.atUid, uin: item.atUin, name: item.atName })
       }
       
-      if (currentFile) {
-        const uploadResult = await uploadFile(currentFile.file)
-        content.push({ type: 'file', filePath: uploadResult.filePath, fileName: uploadResult.fileName })
-      }
-      
       if (content.length === 0) { onTempMessageRemove(tempId); return }
       await sendMessage({ chatType: session.chatType, peerId: session.peerId, content })
       onTempMessageRemove(tempId)
@@ -136,7 +127,7 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>((props, ref) =
       onSendEnd()
       setTimeout(() => richInputRef.current?.focus(), 50)
     }
-  }, [session, replyTo, pendingFile, onSendStart, onSendEnd, onReplyCancel, onTempMessage, onTempMessageRemove, onTempMessageFail])
+  }, [session, replyTo, onSendStart, onSendEnd, onReplyCancel, onTempMessage, onTempMessageRemove, onTempMessageFail])
 
   const handleEmojiSelect = useCallback((faceId: number) => {
     richInputRef.current?.insertFace(faceId)
@@ -151,13 +142,35 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>((props, ref) =
     if (fileInputRef.current) fileInputRef.current.value = ''
   }, [])
 
-  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file) return
+    if (!file || !session) return
     if (file.size > 100 * 1024 * 1024) { showToast('文件过大，最大支持 100MB', 'error'); return }
-    setPendingFile({ file, name: file.name, size: file.size })
     if (fileUploadInputRef.current) fileUploadInputRef.current.value = ''
-  }, [])
+    
+    // 直接发送文件
+    setSending(true)
+    onSendStart()
+    
+    const tempId = `temp_${Date.now()}`
+    onTempMessage({ msgId: tempId, text: `[文件] ${file.name}`, timestamp: Date.now(), status: 'sending' })
+    
+    try {
+      const uploadResult = await uploadFile(file)
+      await sendMessage({ 
+        chatType: session.chatType, 
+        peerId: session.peerId, 
+        content: [{ type: 'file', filePath: uploadResult.filePath, fileName: uploadResult.fileName }] 
+      })
+      onTempMessageRemove(tempId)
+    } catch (e: any) {
+      showToast('发送失败', 'error')
+      onTempMessageFail(tempId)
+    } finally {
+      setSending(false)
+      onSendEnd()
+    }
+  }, [session, onSendStart, onSendEnd, onTempMessage, onTempMessageRemove, onTempMessageFail])
 
   const handlePaste = useCallback((e: React.ClipboardEvent) => {
     const items = e.clipboardData?.items
@@ -194,18 +207,6 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>((props, ref) =
               })}
             </div>
             <button onClick={onReplyCancel} className="p-1 text-theme-hint hover:text-theme rounded"><X size={16} /></button>
-          </div>
-        </div>
-      )}
-
-      {pendingFile && (
-        <div className="px-4 py-2 border-b border-theme-divider bg-theme-item">
-          <div className="flex items-center gap-2">
-            <Paperclip size={16} className="text-green-500 flex-shrink-0" />
-            <div className="flex-1 min-w-0 text-sm text-theme-secondary truncate">
-              {pendingFile.name} ({(pendingFile.size / 1024).toFixed(1)} KB)
-            </div>
-            <button onClick={() => setPendingFile(null)} className="p-1 text-theme-hint hover:text-theme rounded"><X size={16} /></button>
           </div>
         </div>
       )}
@@ -249,7 +250,7 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>((props, ref) =
               onClose={handleMentionClose}
             />
           )}
-          <button onClick={handleSend} disabled={sending || (!hasContent && !pendingFile)} className="p-2.5 bg-pink-500 text-white rounded-xl hover:bg-pink-600 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0">
+          <button onClick={handleSend} disabled={sending || !hasContent} className="p-2.5 bg-pink-500 text-white rounded-xl hover:bg-pink-600 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0">
             {sending ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} />}
           </button>
         </div>
