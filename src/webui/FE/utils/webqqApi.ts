@@ -264,6 +264,13 @@ export async function sendPoke(chatType: number, targetUin: number, groupCode?: 
   }
 }
 
+// 语音转文字
+export async function translatePttToText(msgId: string, chatType: number, peerUid: string, voiceElement: any): Promise<string> {
+  const peer = { chatType, peerUid, guildId: '' }
+  const text = await ntCall<string>('ntMsgApi', 'translatePtt2Text', [msgId, peer, voiceElement])
+  return text || ''
+}
+
 // 踢出群成员 - 使用 ntGroupApi
 export async function kickGroupMember(groupCode: string, uid: string, refuseForever = false): Promise<void> {
   const result = await ntCall('ntGroupApi', 'kickMember', [groupCode, [uid], refuseForever, ''])

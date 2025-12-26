@@ -202,6 +202,9 @@ export const RawMessageBubble = memo<{ message: RawMessage; allMessages: RawMess
   const hasContent = otherElements.some(hasValidContent) || replyElement
   if (!hasContent) return null
 
+  // 检查是否只有语音消息（不需要气泡）
+  const isPttOnly = otherElements.length === 1 && otherElements[0].pttElement && !replyElement
+
   const replySourceMsg = replyElement ? allMessages.find(m => m.msgId === replyElement.replayMsgId || m.msgSeq === replyElement.replayMsgSeq) : null
 
   const handleBubbleContextMenu = (e: React.MouseEvent) => {
@@ -266,37 +269,44 @@ export const RawMessageBubble = memo<{ message: RawMessage; allMessages: RawMess
             </span>
           )}
         </div>
-        <div 
-          className={`rounded-2xl px-4 py-2 min-w-[80px] break-all ${isSelf ? 'bg-pink-500 text-white rounded-br-sm' : 'bg-theme-item text-theme rounded-tl-sm shadow-sm'}`}
-          onContextMenu={handleBubbleContextMenu}
-        >
-          {replyElement && (
-            <div 
-              className={`text-xs mb-2 pb-2 border-b cursor-pointer hover:opacity-80 transition-opacity ${isSelf ? 'border-pink-400/50' : 'border-theme-divider'}`}
-              onClick={handleReplyClick}
-            >
-              <div className={`${isSelf ? 'bg-pink-400/30' : 'bg-theme-input'} rounded px-2 py-1`}>
-                {replySourceMsg ? (
-                  <div className="space-y-1">
-                    <div className={`font-medium ${isSelf ? 'text-pink-100' : 'text-theme-secondary'}`}>
-                      {replySourceMsg.sendMemberName || replySourceMsg.sendNickName || replySourceMsg.senderUin}:
+        {isPttOnly ? (
+          // 语音消息不显示气泡
+          <div onContextMenu={handleBubbleContextMenu}>
+            {otherElements.map((element, index) => <MessageElementRenderer key={index} element={element} message={message} />)}
+          </div>
+        ) : (
+          <div 
+            className={`rounded-2xl px-4 py-2 min-w-[80px] break-all bg-theme-item text-theme shadow-sm ${isSelf ? 'rounded-br-sm' : 'rounded-tl-sm'}`}
+            onContextMenu={handleBubbleContextMenu}
+          >
+            {replyElement && (
+              <div 
+                className="text-xs mb-2 pb-2 border-b border-theme-divider cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={handleReplyClick}
+              >
+                <div className="bg-theme-input rounded px-2 py-1">
+                  {replySourceMsg ? (
+                    <div className="space-y-1">
+                      <div className="font-medium text-theme-secondary">
+                        {replySourceMsg.sendMemberName || replySourceMsg.sendNickName || replySourceMsg.senderUin}:
+                      </div>
+                      <div className="text-theme-muted">
+                        {replySourceMsg.elements?.filter(el => !el.replyElement).map((el, i) => (
+                          <MessageElementRenderer key={i} element={el} />
+                        ))}
+                      </div>
                     </div>
-                    <div className={`${isSelf ? 'text-pink-100' : 'text-theme-muted'}`}>
-                      {replySourceMsg.elements?.filter(el => !el.replyElement).map((el, i) => (
-                        <MessageElementRenderer key={i} element={el} />
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <span className={`${isSelf ? 'text-pink-100' : 'text-theme-muted'}`}>
-                    {replyElement.sourceMsgText || '[消息]'}
-                  </span>
-                )}
+                  ) : (
+                    <span className="text-theme-muted">
+                      {replyElement.sourceMsgText || '[消息]'}
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
-          {otherElements.map((element, index) => <MessageElementRenderer key={index} element={element} message={message} />)}
-        </div>
+            )}
+            {otherElements.map((element, index) => <MessageElementRenderer key={index} element={element} message={message} />)}
+          </div>
+        )}
         <span className="text-xs text-theme-hint mt-1">{formatMessageTime(timestamp)}</span>
       </div>
     </div>
@@ -314,7 +324,9 @@ export const TempMessageBubble = memo<{ message: TempMessage; onRetry: () => voi
         <span className="text-xs text-theme-hint mb-1">我</span>
         <div className="flex items-end gap-1">
           {message.status === 'failed' && <button onClick={onRetry} className="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded" title="重新发送"><RefreshCw size={14} /></button>}
-          <div className="rounded-2xl px-4 py-2 bg-pink-500 text-white rounded-br-sm min-w-[80px] break-all">
+          <div 
+            className="rounded-2xl px-4 py-2 bg-theme-item text-theme rounded-br-sm min-w-[80px] break-all shadow-sm"
+          >
             {message.text && <span className="whitespace-pre-wrap break-words">{message.text}</span>}
             {message.imageUrl && <img src={message.imageUrl} alt="图片" loading="lazy" className="max-w-full rounded-lg" style={{ maxHeight: '200px' }} />}
           </div>

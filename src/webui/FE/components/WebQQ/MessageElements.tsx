@@ -1,7 +1,8 @@
 import React, { useState, memo } from 'react'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Mic } from 'lucide-react'
 import type { MessageElement, RawMessage } from '../../types/webqq'
 import { getToken } from '../../utils/api'
+import { translatePttToText } from '../../utils/webqqApi'
 
 // 图片预览上下文
 export const ImagePreviewContext = React.createContext<{
@@ -79,7 +80,9 @@ export const MessageElementRenderer = memo<{ element: MessageElement; message?: 
   }
   if (element.faceElement) return <span>[表情]</span>
   if (element.fileElement) return <span>[文件: {element.fileElement.fileName}]</span>
-  if (element.pttElement) return <span>[语音消息]</span>
+  if (element.pttElement) {
+    return <PttElementRenderer element={element} message={message} />
+  }
   if (element.videoElement) {
     const video = element.videoElement
     const maxHeight = 200
@@ -202,4 +205,87 @@ export const hasValidContent = (element: MessageElement): boolean => {
 export const isSystemTipMessage = (message: RawMessage): boolean => {
   if (!message.elements || message.elements.length === 0) return false
   return message.elements.every(el => el.grayTipElement || el.replyElement)
+}
+
+// 语音消息渲染组件
+const PttElementRenderer: React.FC<{ element: MessageElement; message?: RawMessage }> = ({ element, message }) => {
+  const [transcribedText, setTranscribedText] = useState<string | null>(null)
+  const [isTranscribing, setIsTranscribing] = useState(false)
+  const [transcribeError, setTranscribeError] = useState(false)
+  
+  const ptt = element.pttElement!
+  const duration = ptt.duration || 0
+  const minutes = Math.floor(duration / 60)
+  const seconds = duration % 60
+  const durationStr = minutes > 0 ? `${minutes}:${seconds.toString().padStart(2, '0')}` : `${seconds}"`
+  
+  // 如果已经有转换好的文字，直接显示
+  const existingText = ptt.text
+  
+  // 计算语音条宽度（根据时长，最小80px，最大200px）
+  const minWidth = 80
+  const maxWidth = 200
+  const width = Math.min(maxWidth, Math.max(minWidth, minWidth + duration * 3))
+  
+  const handleTranscribe = async () => {
+    if (!message || isTranscribing || transcribedText !== null) return
+    
+    setIsTranscribing(true)
+    setTranscribeError(false)
+    
+    try {
+      const text = await translatePttToText(message.msgId, message.chatType, message.peerUid, element)
+      setTranscribedText(text || '(无法识别)')
+    } catch (e) {
+      console.error('语音转文字失败:', e)
+      setTranscribeError(true)
+      setTranscribedText('转换失败')
+    } finally {
+      setIsTranscribing(false)
+    }
+  }
+  
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="flex items-center gap-2">
+        {/* 语音条 */}
+        <div 
+          className="flex items-center gap-2 px-3 py-2 bg-green-100 dark:bg-green-900/40 rounded-full"
+          style={{ width }}
+        >
+          <Mic size={16} className="text-green-600 dark:text-green-400 flex-shrink-0" />
+          <div className="flex-1 flex items-center gap-0.5">
+            {/* 波形动画占位 */}
+            {[1, 2, 3, 4, 5].map(i => (
+              <div 
+                key={i} 
+                className="w-0.5 bg-green-400 dark:bg-green-500 rounded-full"
+                style={{ height: `${8 + Math.random() * 8}px` }}
+              />
+            ))}
+          </div>
+          <span className="text-xs text-green-700 dark:text-green-300 flex-shrink-0">{durationStr}</span>
+        </div>
+        
+        {/* 转文字按钮 */}
+        {!existingText && transcribedText === null && (
+          <button
+            onClick={handleTranscribe}
+            disabled={isTranscribing}
+            className="w-6 h-6 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white text-xs font-medium transition-colors disabled:opacity-50"
+            title="语音转文字"
+          >
+            {isTranscribing ? <Loader2 size={12} className="animate-spin" /> : '文'}
+          </button>
+        )}
+      </div>
+      
+      {/* 转换后的文字 */}
+      {(existingText || transcribedText) && (
+        <div className={`text-sm px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-lg max-w-[250px] ${transcribeError ? 'text-red-500' : 'text-theme-secondary'}`}>
+          {existingText || transcribedText}
+        </div>
+      )}
+    </div>
+  )
 }
