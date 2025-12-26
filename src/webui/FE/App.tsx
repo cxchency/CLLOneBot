@@ -15,7 +15,7 @@ import {
 import { WebQQPage } from './components/WebQQ';
 import { Config, ResConfig } from './types';
 import { apiFetch, setPasswordPromptHandler } from './utils/api';
-import { Save, Loader2, Settings, Eye, EyeOff, Plus, Trash2 } from 'lucide-react';
+import { Save, Loader2, Settings, Eye, EyeOff, Plus, Trash2, Menu } from 'lucide-react';
 import { defaultConfig } from '../../common/defaultConfig'
 import { version } from '../../version'
 
@@ -42,6 +42,7 @@ function App() {
   const [showMilkyWebhookToken, setShowMilkyWebhookToken] = useState(false);
   const [showChangePasswordDialog, setShowChangePasswordDialog] = useState(false);
   const [qqVersion, setQqVersion] = useState<string>('');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // 设置密码提示处理器
   useEffect(() => {
@@ -198,18 +199,34 @@ function App() {
       {/* Animated Background */}
       <AnimatedBackground />
 
-      <Sidebar activeTab={activeTab} onTabChange={setActiveTab} accountInfo={accountInfo || undefined} />
+      <Sidebar 
+        activeTab={activeTab} 
+        onTabChange={setActiveTab} 
+        accountInfo={accountInfo || undefined}
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
 
-      <main className="flex-1 p-8 overflow-auto z-10">
-        <div className="max-w-6xl mx-auto">
-          {/* Header */}
-          <div className="mb-8">
+      <main className="flex-1 overflow-auto z-10">
+        {/* 移动端顶部导航栏 */}
+        <div className="md:hidden sticky top-0 z-30 bg-theme-card/95 backdrop-blur-xl border-b border-theme-divider px-4 py-3 flex items-center gap-3">
+          <button 
+            onClick={() => setSidebarOpen(true)}
+            className="p-2 text-theme-muted hover:text-theme hover:bg-theme-item rounded-lg transition-colors"
+          >
+            <Menu size={24} />
+          </button>
+          <div className="flex items-center gap-2">
+            <img src="/logo.jpg" alt="Logo" className="w-8 h-8 rounded-lg" />
+            <span className="font-semibold text-theme">LLBot</span>
+          </div>
+        </div>
+        
+        <div className="p-4 md:p-8 max-w-6xl mx-auto">
+          {/* Header - 桌面端显示 */}
+          <div className="mb-8 hidden md:block">
             <h2 className="text-3xl font-bold text-white mb-2">
               {activeTab === 'dashboard' && 'Dashboard'}
-              {/*{activeTab === 'onebot' && 'OneBot 11 配置'}*/}
-              {/*{activeTab === 'satori' && 'Satori 配置'}*/}
-              {/*{activeTab === 'other' && '其他配置'}*/}
-              {/*{activeTab === 'about' && '关于'}*/}
             </h2>
             <p className="text-white/80">
               {activeTab === 'dashboard' && '欢迎使用 Lucky Lillia Bot'}

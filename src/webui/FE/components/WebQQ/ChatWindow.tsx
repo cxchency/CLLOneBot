@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { Users, Reply, Trash2, AtSign, Hand, User, UserMinus, VolumeX, Award, Loader2 } from 'lucide-react'
+import { Users, Reply, Trash2, AtSign, Hand, User, UserMinus, VolumeX, Award, Loader2, ArrowLeft } from 'lucide-react'
 import type { ChatSession, RawMessage } from '../../types/webqq'
 import { getMessages, getSelfUid, recallMessage, sendPoke, getUserProfile, UserProfile, kickGroupMember, getGroupProfile, GroupProfile, quitGroup, muteGroupMember, setMemberTitle } from '../../utils/webqqApi'
 import { useWebQQStore, hasVisitedChat, markChatVisited } from '../../stores/webqqStore'
@@ -23,11 +23,13 @@ interface ChatWindowProps {
   onNewMessageCallback?: (callback: ((msg: RawMessage) => void) | null) => void
   appendInputText?: string
   onAppendInputTextConsumed?: () => void
+  onBack?: () => void
+  showBackButton?: boolean
 }
 
 type MessageItem = { type: 'raw'; data: RawMessage } | { type: 'temp'; data: TempMessage }
 
-const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMessageCallback, appendInputText, onAppendInputTextConsumed }) => {
+const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMessageCallback, appendInputText, onAppendInputTextConsumed, onBack, showBackButton }) => {
   const [messages, setMessages] = useState<RawMessage[]>([])
   const [tempMessages, setTempMessages] = useState<TempMessage[]>([])
   const [loading, setLoading] = useState(false)
@@ -376,9 +378,18 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
     <GroupMembersContext.Provider value={groupMembersContextValue}>
       <div className="flex flex-col h-full">
         {/* 头部 */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-theme-divider bg-theme-card">
+        <div className="flex items-center justify-between px-2 md:px-4 py-3 border-b border-theme-divider bg-theme-card">
+          {/* 返回按钮（移动端） */}
+          {showBackButton && (
+            <button 
+              onClick={onBack}
+              className="p-2 mr-1 text-theme-muted hover:text-theme hover:bg-theme-item rounded-lg transition-colors md:hidden"
+            >
+              <ArrowLeft size={20} />
+            </button>
+          )}
           <div 
-            className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+            className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity flex-1 min-w-0"
             onClick={async (e) => {
               const rect = e.currentTarget.getBoundingClientRect()
               const x = rect.left
@@ -411,9 +422,9 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
               }
             }}
           >
-            <img src={session.peerAvatar} alt={session.peerName} className="w-10 h-10 rounded-full object-cover" />
-            <div>
-              <div className="font-medium text-theme">
+            <img src={session.peerAvatar} alt={session.peerName} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+            <div className="min-w-0">
+              <div className="font-medium text-theme truncate">
                 {(() => {
                   const { groups, friendCategories } = useWebQQStore.getState()
                   if (session.chatType === 2) {

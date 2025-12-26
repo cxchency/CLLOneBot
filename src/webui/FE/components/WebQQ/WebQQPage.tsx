@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback } from 'react'
+import React, { useEffect, useCallback, useState } from 'react'
 import ContactList from './contact/ContactList'
 import ChatWindow from './ChatWindow'
 import GroupMemberPanel from './contact/GroupMemberPanel'
@@ -191,32 +191,49 @@ const WebQQPage: React.FC = () => {
     }))
   }, [setCurrentChat, clearUnreadCount, setRecentChats, recentChats, setShowMemberPanel])
 
+  // 移动端：是否显示聊天窗口（隐藏联系人列表）
+  const [showChatOnMobile, setShowChatOnMobile] = useState(false)
+  
+  // 移动端选择聊天后显示聊天窗口
+  const handleSelectChatMobile = useCallback((session: ChatSession) => {
+    handleSelectChat(session)
+    setShowChatOnMobile(true)
+  }, [handleSelectChat])
+  
+  // 移动端返回联系人列表
+  const handleBackToContacts = useCallback(() => {
+    setShowChatOnMobile(false)
+  }, [])
+
   const handleSelectFriend = useCallback((friend: FriendItem) => {
-    handleSelectChat({
-      chatType: 1,
+    const session = {
+      chatType: 1 as const,
       peerId: friend.uin,
       peerName: friend.remark || friend.nickname,
       peerAvatar: friend.avatar
-    })
-  }, [handleSelectChat])
+    }
+    handleSelectChatMobile(session)
+  }, [handleSelectChatMobile])
 
   const handleSelectGroup = useCallback((group: GroupItem) => {
-    handleSelectChat({
-      chatType: 2,
+    const session = {
+      chatType: 2 as const,
       peerId: group.groupCode,
       peerName: group.groupName,
       peerAvatar: group.avatar
-    })
-  }, [handleSelectChat])
+    }
+    handleSelectChatMobile(session)
+  }, [handleSelectChatMobile])
 
   const handleSelectRecent = useCallback((recent: RecentChatItem) => {
-    handleSelectChat({
+    const session = {
       chatType: recent.chatType,
       peerId: recent.peerId,
       peerName: recent.peerName,
       peerAvatar: recent.peerAvatar
-    })
-  }, [handleSelectChat])
+    }
+    handleSelectChatMobile(session)
+  }, [handleSelectChatMobile])
 
   const unreadCountsMap = React.useMemo(() => {
     return new Map(Object.entries(unreadCounts))
@@ -244,8 +261,12 @@ const WebQQPage: React.FC = () => {
   }
 
   return (
-    <div className="flex h-[calc(100vh-120px)] bg-theme-card backdrop-blur-xl rounded-2xl overflow-hidden shadow-xl border border-theme">
-      <div className="w-72 border-r border-theme-divider flex-shrink-0">
+    <div className="flex h-[calc(100vh-80px)] md:h-[calc(100vh-120px)] bg-theme-card backdrop-blur-xl rounded-none md:rounded-2xl overflow-hidden shadow-xl border border-theme">
+      {/* 联系人列表 - 移动端全屏，桌面端固定宽度 */}
+      <div className={`
+        w-full md:w-72 border-r border-theme-divider flex-shrink-0
+        ${showChatOnMobile ? 'hidden md:block' : 'block'}
+      `}>
         <ContactList
           activeTab={activeTab}
           onTabChange={setActiveTab}
@@ -260,18 +281,25 @@ const WebQQPage: React.FC = () => {
         />
       </div>
 
-      <div className="flex-1 flex flex-col min-w-0">
+      {/* 聊天窗口 - 移动端全屏，桌面端自适应 */}
+      <div className={`
+        flex-1 flex flex-col min-w-0
+        ${showChatOnMobile ? 'block' : 'hidden md:flex'}
+      `}>
         <ChatWindow
           session={currentChat}
           onShowMembers={() => setShowMemberPanel(true)}
           onNewMessageCallback={handleSetNewMessageCallback}
           appendInputText={appendInputText}
           onAppendInputTextConsumed={handleAppendInputTextConsumed}
+          onBack={handleBackToContacts}
+          showBackButton={showChatOnMobile}
         />
       </div>
 
+      {/* 群成员面板 - 移动端隐藏 */}
       {showMemberPanel && currentChat?.chatType === 2 && (
-        <div className="w-64 border-l border-theme-divider flex-shrink-0">
+        <div className="hidden md:block w-64 border-l border-theme-divider flex-shrink-0">
           <GroupMemberPanel 
             groupCode={currentChat.peerId} 
             onClose={() => setShowMemberPanel(false)} 
