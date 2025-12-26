@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { Users, Send, Image as ImageIcon, X, Loader2, Reply, Trash2, AtSign, Hand, User, UserMinus, VolumeX } from 'lucide-react'
+import { Users, Send, Image as ImageIcon, X, Loader2, Reply, Trash2, AtSign, Hand, User, UserMinus, VolumeX, Award } from 'lucide-react'
 import type { ChatSession, RawMessage } from '../../types/webqq'
-import { getMessages, sendMessage, uploadImage, isEmptyMessage, isValidImageFormat, getSelfUid, recallMessage, sendPoke, getUserProfile, UserProfile, getGroupMembers, kickGroupMember, getGroupProfile, GroupProfile, quitGroup, muteGroupMember } from '../../utils/webqqApi'
+import { getMessages, sendMessage, uploadImage, isEmptyMessage, isValidImageFormat, getSelfUid, recallMessage, sendPoke, getUserProfile, UserProfile, getGroupMembers, kickGroupMember, getGroupProfile, GroupProfile, quitGroup, muteGroupMember, setMemberTitle } from '../../utils/webqqApi'
 import { useWebQQStore, hasVisitedChat, markChatVisited, unmarkChatVisited } from '../../stores/webqqStore'
 import { getCachedMessages, setCachedMessages, appendCachedMessage, removeCachedMessage } from '../../utils/messageDb'
 import { showToast } from '../Toast'
@@ -150,6 +150,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
   const [highlightMsgId, setHighlightMsgId] = useState<string | null>(null)
   const [kickConfirm, setKickConfirm] = useState<{ uid: string; name: string; groupCode: string; groupName: string } | null>(null)
   const [muteDialog, setMuteDialog] = useState<{ uid: string; name: string; groupCode: string } | null>(null)
+  const [titleDialog, setTitleDialog] = useState<{ uid: string; name: string; groupCode: string } | null>(null)
   const [pendingAts, setPendingAts] = useState<{ uid: string; uin: string; name: string }[]>([])
 
   const imagePreviewContextValue = useMemo(() => ({
@@ -859,6 +860,28 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
               <User size={14} />
               查看资料
             </button>
+            {/* 设置头衔 - 仅群主可用 */}
+            {(() => {
+              if (avatarContextMenu.chatType !== 2 || !avatarContextMenu.groupCode) return null
+              const selfUid = getSelfUid()
+              const cachedMembers = getCachedMembers(avatarContextMenu.groupCode)
+              const selfMember = cachedMembers && selfUid ? cachedMembers.find(m => m.uid === selfUid) : null
+              const isOwner = selfMember?.role === 'owner'
+              if (!isOwner) return null
+              return (
+                <button onClick={() => {
+                  setTitleDialog({
+                    uid: avatarContextMenu.senderUid,
+                    name: avatarContextMenu.senderName,
+                    groupCode: avatarContextMenu.groupCode!
+                  })
+                  setAvatarContextMenu(null)
+                }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-theme hover:bg-theme-item-hover transition-colors">
+                  <Award size={14} />
+                  设置头衔
+                </button>
+              )
+            })()}
             {/* 禁言 - 权限逻辑：群主可禁言任何人（除自己），管理员可禁言普通成员（除群主、管理员、自己） */}
             {(() => {
               if (avatarContextMenu.chatType !== 2 || !avatarContextMenu.groupCode) return null
@@ -1004,6 +1027,62 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
           }}
           onClose={() => setMuteDialog(null)}
         />,
+        document.body
+      )}
+      
+      {/* 设置头衔对话框 */}
+      {titleDialog && createPortal(
+        <>
+          <div className="fixed inset-0 z-50 bg-black/30" onClick={() => setTitleDialog(null)} />
+          <div className="fixed z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-theme-card backdrop-blur-xl border border-theme-divider rounded-xl shadow-xl p-6 min-w-[320px]">
+            <h3 className="text-lg font-medium text-theme mb-4">设置头衔</h3>
+            <p className="text-sm text-theme-secondary mb-3">为 {titleDialog.name} 设置专属头衔：</p>
+            <input
+              type="text"
+              maxLength={12}
+              placeholder="留空清除头衔"
+              className="w-full px-3 py-2 bg-theme-input border border-theme-input rounded-lg text-theme focus:outline-none focus:ring-2 focus:ring-pink-500/20 placeholder:text-theme-hint"
+              autoFocus
+              onKeyDown={async (e) => {
+                if (e.key === 'Enter') {
+                  const input = e.currentTarget
+                  const title = input.value.trim()
+                  const { uid, name, groupCode } = titleDialog
+                  setTitleDialog(null)
+                  try {
+                    await setMemberTitle(groupCode, uid, title)
+                    showToast(title ? `已设置 ${name} 的头衔为「${title}」` : `已清除 ${name} 的头衔`, 'success')
+                  } catch (err: any) {
+                    showToast(err.message || '设置头衔失败', 'error')
+                  }
+                }
+              }}
+            />
+            <p className="text-xs text-theme-secondary mt-2">中文最多6字，英文最多12字，按回车确认</p>
+            <div className="flex justify-end gap-2 mt-4">
+              <button onClick={() => setTitleDialog(null)} className="px-4 py-2 text-sm text-theme-secondary hover:bg-theme-item rounded-lg transition-colors">
+                取消
+              </button>
+              <button 
+                onClick={async () => {
+                  const input = document.querySelector<HTMLInputElement>('input[maxLength="12"]')
+                  const title = input?.value.trim() || ''
+                  const { uid, name, groupCode } = titleDialog
+                  setTitleDialog(null)
+                  try {
+                    await setMemberTitle(groupCode, uid, title)
+                    showToast(title ? `已设置 ${name} 的头衔为「${title}」` : `已清除 ${name} 的头衔`, 'success')
+                  } catch (err: any) {
+                    showToast(err.message || '设置头衔失败', 'error')
+                  }
+                }}
+                className="px-4 py-2 text-sm bg-pink-500 text-white hover:bg-pink-600 rounded-lg transition-colors"
+              >
+                确认
+              </button>
+            </div>
+          </div>
+        </>,
         document.body
       )}
       

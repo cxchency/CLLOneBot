@@ -843,6 +843,96 @@ export class WebUIServer extends Service {
         res.status(500).json({ success: false, message: '图片代理失败', error: e.message })
       }
     })
+
+    // 语音代理接口 - 获取语音并转换为浏览器可播放格式
+    this.app.get('/api/webqq/audio-proxy', async (req: Request, res: Response) => {
+      try {
+        const fileUuid = req.query.fileUuid as string
+        const filePath = req.query.filePath as string
+        const isGroup = req.query.isGroup === 'true'
+        
+        if (!fileUuid && !filePath) {
+          res.status(400).json({ success: false, message: '缺少 fileUuid 或 filePath 参数' })
+          return
+        }
+
+        this.ctx.logger.info('语音代理请求:', { fileUuid, filePath, isGroup })
+
+        const { decodeSilk } = await import('@/common/utils/audio')
+        const fs = await import('fs/promises')
+        const path = await import('path')
+        const os = await import('os')
+        const { randomUUID } = await import('crypto')
+        
+        let audioFilePath: string
+        
+        // 优先使用本地文件路径
+        if (filePath) {
+          const decodedPath = decodeURIComponent(filePath)
+          try {
+            await fs.access(decodedPath)
+            audioFilePath = decodedPath
+            this.ctx.logger.info('使用本地文件:', audioFilePath)
+          } catch {
+            this.ctx.logger.warn('本地文件不存在，尝试从URL获取')
+            audioFilePath = ''
+          }
+        } else {
+          audioFilePath = ''
+        }
+        
+        // 如果本地文件不存在，从URL获取
+        if (!audioFilePath && fileUuid) {
+          const url = await this.ctx.ntFileApi.getPttUrl(fileUuid, isGroup)
+          if (!url) {
+            res.status(404).json({ success: false, message: '获取语音URL失败' })
+            return
+          }
+
+          this.ctx.logger.info('语音URL:', url)
+
+          const response = await fetch(url, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            }
+          })
+
+          if (!response.ok) {
+            this.ctx.logger.warn('语音代理请求失败:', response.status, response.statusText)
+            res.status(response.status).json({ success: false, message: `获取语音失败: ${response.statusText}` })
+            return
+          }
+
+          const audioBuffer = Buffer.from(await response.arrayBuffer())
+          const tempDir = os.tmpdir()
+          audioFilePath = path.join(tempDir, `ptt_${randomUUID()}.silk`)
+          await fs.writeFile(audioFilePath, audioBuffer)
+        }
+        
+        // 转换为 mp3
+        try {
+          const mp3Path = await decodeSilk(this.ctx, audioFilePath, 'mp3')
+          const mp3Buffer = await fs.readFile(mp3Path)
+          
+          // 清理临时文件
+          if (audioFilePath.includes(os.tmpdir())) {
+            fs.unlink(audioFilePath).catch(() => {})
+          }
+          fs.unlink(mp3Path).catch(() => {})
+          
+          res.setHeader('Content-Type', 'audio/mpeg')
+          res.setHeader('Cache-Control', 'public, max-age=86400')
+          res.setHeader('Access-Control-Allow-Origin', '*')
+          res.send(mp3Buffer)
+        } catch (decodeError) {
+          this.ctx.logger.error('silk 解码失败:', decodeError)
+          res.status(500).json({ success: false, message: '语音解码失败', error: String(decodeError) })
+        }
+      } catch (e: any) {
+        this.ctx.logger.error('语音代理失败:', e)
+        res.status(500).json({ success: false, message: '语音代理失败', error: e.message })
+      }
+    })
   }
 
   // 辅助方法：提取摘要内容

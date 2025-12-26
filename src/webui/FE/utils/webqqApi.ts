@@ -285,6 +285,21 @@ export async function muteGroupMember(groupCode: string, uid: string, duration: 
   await ntCall('ntGroupApi', 'banMember', [groupCode, [{ uid, timeStamp: duration }]])
 }
 
+// 设置群成员头衔 - 使用 pmhq（仅群主可用）
+export async function setMemberTitle(groupCode: string, uid: string, title: string): Promise<void> {
+  await ntCall('pmhq', 'setSpecialTitle', [parseInt(groupCode), uid, title])
+}
+
+// 获取语音消息 URL（通过代理）
+export function getAudioProxyUrl(fileUuid: string, isGroup: boolean, filePath?: string): string {
+  const token = getToken()
+  let url = `/api/webqq/audio-proxy?fileUuid=${encodeURIComponent(fileUuid)}&isGroup=${isGroup}&token=${encodeURIComponent(token || '')}`
+  if (filePath) {
+    url += `&filePath=${encodeURIComponent(filePath)}`
+  }
+  return url
+}
+
 // 退出群聊（群主调用则解散群）
 export async function quitGroup(groupCode: string): Promise<void> {
   const result = await ntCall<{ result: number; errMsg: string }>('ntGroupApi', 'quitGroup', [groupCode])

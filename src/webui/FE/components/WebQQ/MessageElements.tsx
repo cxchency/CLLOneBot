@@ -1,8 +1,8 @@
-import React, { useState, memo } from 'react'
-import { Loader2, Mic } from 'lucide-react'
+import React, { useState, memo, useRef } from 'react'
+import { Loader2, Mic, Play, Pause } from 'lucide-react'
 import type { MessageElement, RawMessage } from '../../types/webqq'
 import { getToken } from '../../utils/api'
-import { translatePttToText } from '../../utils/webqqApi'
+import { translatePttToText, getAudioProxyUrl } from '../../utils/webqqApi'
 
 // 图片预览上下文
 export const ImagePreviewContext = React.createContext<{
@@ -212,6 +212,9 @@ const PttElementRenderer: React.FC<{ element: MessageElement; message?: RawMessa
   const [transcribedText, setTranscribedText] = useState<string | null>(null)
   const [isTranscribing, setIsTranscribing] = useState(false)
   const [transcribeError, setTranscribeError] = useState(false)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
   
   const ptt = element.pttElement!
   const duration = ptt.duration || 0
@@ -226,6 +229,62 @@ const PttElementRenderer: React.FC<{ element: MessageElement; message?: RawMessa
   const minWidth = 80
   const maxWidth = 200
   const width = Math.min(maxWidth, Math.max(minWidth, minWidth + duration * 3))
+  
+  const handlePlay = async () => {
+    if (!message || !ptt.fileUuid || isLoading) return
+    
+    // 如果正在播放，暂停
+    if (isPlaying && audioRef.current) {
+      audioRef.current.pause()
+      setIsPlaying(false)
+      return
+    }
+    
+    // 如果已有 audio 元素且已加载，直接播放
+    if (audioRef.current && audioRef.current.readyState >= 2) {
+      audioRef.current.play()
+      setIsPlaying(true)
+      return
+    }
+    
+    // 通过代理获取音频
+    setIsLoading(true)
+    try {
+      const isGroup = message.chatType === 2
+      console.log('pttElement:', ptt)
+      const url = getAudioProxyUrl(ptt.fileUuid, isGroup, ptt.filePath)
+      console.log('音频代理URL:', url)
+      
+      const audio = new Audio()
+      audioRef.current = audio
+      
+      audio.onended = () => setIsPlaying(false)
+      audio.onerror = (e) => {
+        // 尝试获取响应内容来诊断问题
+        fetch(url).then(r => r.text()).then(text => {
+          console.error('音频加载错误，响应内容:', text.substring(0, 200))
+        }).catch(() => {})
+        console.error('音频加载错误:', e, audio.error, 'URL:', url)
+        setIsPlaying(false)
+        setIsLoading(false)
+      }
+      
+      audio.onloadeddata = async () => {
+        setIsLoading(false)
+        try {
+          await audio.play()
+          setIsPlaying(true)
+        } catch (e) {
+          console.error('播放失败:', e)
+        }
+      }
+      
+      audio.src = url
+    } catch (e) {
+      console.error('获取语音URL失败:', e)
+      setIsLoading(false)
+    }
+  }
   
   const handleTranscribe = async () => {
     if (!message || isTranscribing || transcribedText !== null) return
@@ -250,16 +309,24 @@ const PttElementRenderer: React.FC<{ element: MessageElement; message?: RawMessa
       <div className="flex items-center gap-2">
         {/* 语音条 */}
         <div 
-          className="flex items-center gap-2 px-3 py-2 bg-green-100 dark:bg-green-900/40 rounded-full"
+          className="flex items-center gap-2 px-3 py-2 bg-green-100 dark:bg-green-900/40 rounded-full cursor-pointer hover:bg-green-200 dark:hover:bg-green-900/60 transition-colors"
           style={{ width }}
+          onClick={handlePlay}
+          title="点击播放"
         >
-          <Mic size={16} className="text-green-600 dark:text-green-400 flex-shrink-0" />
+          {isLoading ? (
+            <Loader2 size={16} className="text-green-600 dark:text-green-400 flex-shrink-0 animate-spin" />
+          ) : isPlaying ? (
+            <Pause size={16} className="text-green-600 dark:text-green-400 flex-shrink-0" />
+          ) : (
+            <Play size={16} className="text-green-600 dark:text-green-400 flex-shrink-0" />
+          )}
           <div className="flex-1 flex items-center gap-0.5">
-            {/* 波形动画占位 */}
+            {/* 波形动画 */}
             {[1, 2, 3, 4, 5].map(i => (
               <div 
                 key={i} 
-                className="w-0.5 bg-green-400 dark:bg-green-500 rounded-full"
+                className={`w-0.5 bg-green-400 dark:bg-green-500 rounded-full transition-all ${isPlaying ? 'animate-pulse' : ''}`}
                 style={{ height: `${8 + Math.random() * 8}px` }}
               />
             ))}
