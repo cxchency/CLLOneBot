@@ -1,15 +1,23 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Loader2 } from 'lucide-react'
+import { createPortal } from 'react-dom'
+import { Loader2, Trash2 } from 'lucide-react'
 import { ntCall } from '../../../utils/webqqApi'
+import { showToast } from '../../common'
 
 export interface FavEmoji {
   emoId: number
+  resId: string
   url: string
   desc: string
 }
 
 // 模块级缓存
 let cachedEmojis: FavEmoji[] | null = null
+
+// 清除缓存（供外部调用）
+export const clearFavEmojiCache = () => {
+  cachedEmojis = null
+}
 
 const RECENT_FAV_EMOJI_KEY = 'webqq_recent_fav_emojis'
 const MAX_RECENT = 10
@@ -29,6 +37,55 @@ function addRecentFavEmoji(emoji: FavEmoji) {
   localStorage.setItem(RECENT_FAV_EMOJI_KEY, JSON.stringify(recent.slice(0, MAX_RECENT)))
 }
 
+function removeRecentFavEmoji(emoId: number) {
+  const recent = getRecentFavEmojis().filter(e => e.emoId !== emoId)
+  localStorage.setItem(RECENT_FAV_EMOJI_KEY, JSON.stringify(recent))
+}
+
+// 表情右键菜单
+const EmojiContextMenu: React.FC<{
+  x: number
+  y: number
+  emoji: FavEmoji
+  onClose: () => void
+  onDelete: () => void
+}> = ({ x, y, onClose, onDelete }) => {
+  const menuRef = useRef<HTMLDivElement>(null)
+  const [position, setPosition] = useState({ left: x, top: y })
+  
+  useEffect(() => {
+    if (!menuRef.current) return
+    const menuRect = menuRef.current.getBoundingClientRect()
+    const padding = 10
+    let left = x, top = y
+    if (x + menuRect.width > window.innerWidth - padding) left = x - menuRect.width
+    if (left < padding) left = padding
+    if (y + menuRect.height > window.innerHeight - padding) top = y - menuRect.height
+    if (top < padding) top = padding
+    setPosition({ left, top })
+  }, [x, y])
+  
+  return createPortal(
+    <>
+      <div className="fixed inset-0 z-[60]" onClick={onClose} onContextMenu={(e) => { e.preventDefault(); onClose() }} />
+      <div 
+        ref={menuRef}
+        className="fixed z-[60] bg-popup backdrop-blur-sm border border-theme-divider rounded-lg shadow-lg py-1 min-w-[100px]" 
+        style={{ left: position.left, top: position.top }}
+        onContextMenu={(e) => e.preventDefault()}
+      >
+        <button 
+          onClick={onDelete} 
+          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-theme-item-hover transition-colors"
+        >
+          <Trash2 size={14} /> 删除
+        </button>
+      </div>
+    </>,
+    document.body
+  )
+}
+
 interface FavEmojiPickerProps {
   onSelect: (emoji: FavEmoji) => void
   onClose: () => void
@@ -39,6 +96,7 @@ export const FavEmojiPicker: React.FC<FavEmojiPickerProps> = ({ onSelect, onClos
   const [loading, setLoading] = useState(!cachedEmojis)
   const [error, setError] = useState<string | null>(null)
   const [recentEmojis, setRecentEmojis] = useState<FavEmoji[]>(getRecentFavEmojis())
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; emoji: FavEmoji } | null>(null)
   const pickerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -55,6 +113,7 @@ export const FavEmojiPicker: React.FC<FavEmojiPickerProps> = ({ onSelect, onClos
         const list = result.emojiInfoList || []
         const emojiList = list.map(item => ({
           emoId: item.emoId,
+          resId: item.resId || '',
           url: item.url,
           desc: item.desc || ''
         }))
@@ -69,8 +128,14 @@ export const FavEmojiPicker: React.FC<FavEmojiPickerProps> = ({ onSelect, onClos
     loadEmojis()
   }, [])
 
+  // 使用 ref 跟踪 contextMenu 状态，避免闭包问题
+  const contextMenuRef = useRef(contextMenu)
+  contextMenuRef.current = contextMenu
+
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
+      // 如果右键菜单打开，不关闭 Picker
+      if (contextMenuRef.current) return
       if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
         onClose()
       }
@@ -83,6 +148,36 @@ export const FavEmojiPicker: React.FC<FavEmojiPickerProps> = ({ onSelect, onClos
     addRecentFavEmoji(emoji)
     setRecentEmojis(getRecentFavEmojis())
     onSelect(emoji)
+  }
+
+  const handleContextMenu = (e: React.MouseEvent, emoji: FavEmoji) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setContextMenu({ x: e.clientX, y: e.clientY, emoji })
+  }
+
+  const handleDelete = async () => {
+    if (!contextMenu) return
+    const { emoji } = contextMenu
+    setContextMenu(null)
+    
+    try {
+      const result = await ntCall<{ result: number; errMsg: string }>('ntMsgApi', 'deleteFavEmoji', [[emoji.resId]])
+      if (result.result === 0) {
+        showToast('已删除', 'success')
+        // 更新列表
+        const newEmojis = emojis.filter(e => e.emoId !== emoji.emoId)
+        setEmojis(newEmojis)
+        cachedEmojis = newEmojis
+        // 从最近使用中移除
+        removeRecentFavEmoji(emoji.emoId)
+        setRecentEmojis(getRecentFavEmojis())
+      } else {
+        showToast(result.errMsg || '删除失败', 'error')
+      }
+    } catch (e: any) {
+      showToast(e.message || '删除失败', 'error')
+    }
   }
 
   return (
@@ -100,6 +195,7 @@ export const FavEmojiPicker: React.FC<FavEmojiPickerProps> = ({ onSelect, onClos
                 <button
                   key={`recent-${emoji.emoId}`}
                   onClick={() => handleSelect(emoji)}
+                  onContextMenu={(e) => handleContextMenu(e, emoji)}
                   className="p-1 rounded-lg hover:bg-theme-item transition-colors"
                   title={emoji.desc}
                 >
@@ -125,6 +221,7 @@ export const FavEmojiPicker: React.FC<FavEmojiPickerProps> = ({ onSelect, onClos
                 <button
                   key={emoji.emoId}
                   onClick={() => handleSelect(emoji)}
+                  onContextMenu={(e) => handleContextMenu(e, emoji)}
                   className="p-1 rounded-lg hover:bg-theme-item transition-colors"
                   title={emoji.desc}
                 >
@@ -140,6 +237,17 @@ export const FavEmojiPicker: React.FC<FavEmojiPickerProps> = ({ onSelect, onClos
           </>
         )}
       </div>
+      
+      {/* 右键菜单 */}
+      {contextMenu && (
+        <EmojiContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          emoji={contextMenu.emoji}
+          onClose={() => setContextMenu(null)}
+          onDelete={handleDelete}
+        />
+      )}
     </div>
   )
 }

@@ -470,7 +470,7 @@ export const RecentListItem: React.FC<RecentListItemProps> = ({ item, displayNam
         />
         {unreadCount > 0 && (
           <div className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-xs font-medium rounded-full flex items-center justify-center px-1">
-            {unreadCount > 99 ? '99+' : unreadCount}
+            {unreadCount}
           </div>
         )}
       </div>

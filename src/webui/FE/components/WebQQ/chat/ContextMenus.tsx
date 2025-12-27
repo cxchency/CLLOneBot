@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { Reply, Trash2, AtSign, Hand, User, UserMinus, VolumeX, Award, Smile, Shield, ShieldOff } from 'lucide-react'
+import { Reply, Trash2, AtSign, Hand, User, UserMinus, VolumeX, Award, Smile, Shield, ShieldOff, Star } from 'lucide-react'
 import type { RawMessage, GroupMemberItem } from '../../../types/webqq'
 import { getSelfUid, recallMessage, sendPoke, ntCall } from '../../../utils/webqqApi'
 import { showToast } from '../../common'
@@ -53,7 +53,7 @@ function useMenuPosition(x: number, y: number, menuRef: React.RefObject<HTMLDivE
 }
 
 interface MessageContextMenuProps {
-  contextMenu: { x: number; y: number; message: RawMessage }
+  contextMenu: { x: number; y: number; message: RawMessage; elementId?: string }
   session: { chatType: number; peerId: string } | null
   getCachedMembers: (groupCode: string) => GroupMemberItem[] | null
   onClose: () => void
@@ -84,9 +84,42 @@ export const MessageContextMenu: React.FC<MessageContextMenuProps> = ({
   const targetRole = targetMember?.role
   const targetIsAdmin = targetRole === 'admin' || targetRole === 'owner'
   const canRecall = isSelfMessage || (isGroup && (isOwner || (isAdmin && !targetIsAdmin)))
+  
+  // 检查是否是图片右键菜单（有 elementId 说明是在图片上右键）
+  const isImageMenu = !!contextMenu.elementId
 
   const menuRef = useRef<HTMLDivElement>(null)
   const position = useMenuPosition(contextMenu.x, contextMenu.y, menuRef)
+
+  const handleAddToFavEmoji = async () => {
+    if (!contextMenu.elementId) return
+    onClose()
+    try {
+      // 先下载图片，downloadMedia 直接返回 filePath 字符串
+      const filePath = await ntCall('ntFileApi', 'downloadMedia', [
+        msg.msgId,
+        msg.chatType,
+        msg.peerUid,
+        contextMenu.elementId,
+        '',
+        ''
+      ])
+      
+      if (!filePath) {
+        showToast('图片下载失败', 'error')
+        return
+      }
+      
+      const result = await ntCall('ntMsgApi', 'addFavEmoji', [filePath])
+      if (result.result === 0) {
+        showToast(result.isExist ? '表情已存在' : '已添加到表情', 'success')
+      } else {
+        showToast(result.errMsg || '添加失败', 'error')
+      }
+    } catch (e: any) {
+      showToast(e.message || '添加失败', 'error')
+    }
+  }
 
   return createPortal(
     <>
@@ -109,6 +142,14 @@ export const MessageContextMenu: React.FC<MessageContextMenuProps> = ({
             className="w-full flex items-center gap-2 px-3 py-2 text-sm text-theme hover:bg-theme-item-hover transition-colors"
           >
             <Smile size={14} /> 贴表情
+          </button>
+        )}
+        {isImageMenu && (
+          <button 
+            onClick={handleAddToFavEmoji} 
+            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-theme hover:bg-theme-item-hover transition-colors"
+          >
+            <Star size={14} /> 添加到表情
           </button>
         )}
         {canRecall && (

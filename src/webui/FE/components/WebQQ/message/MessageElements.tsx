@@ -14,6 +14,11 @@ export const VideoPreviewContext = React.createContext<{
   showPreview: (chatType: number, peerUid: string, msgId: string, elementId: string) => void
 } | null>(null)
 
+// 图片右键菜单上下文（用于添加到表情）
+export const ImageContextMenuContext = React.createContext<{
+  showMenu: (e: React.MouseEvent, message: RawMessage, elementId: string) => void
+} | null>(null)
+
 export const getProxyImageUrl = (url: string | undefined): string => {
   if (!url) return ''
   if (url.startsWith('blob:')) return url
@@ -30,6 +35,7 @@ export const MessageElementRenderer = memo<{ element: MessageElement; message?: 
   const [videoThumbError, setVideoThumbError] = useState(false)
   const previewContext = React.useContext(ImagePreviewContext)
   const videoPreviewContext = React.useContext(VideoPreviewContext)
+  const imageContextMenuContext = React.useContext(ImageContextMenuContext)
   
   if (element.textElement) return <span className="whitespace-pre-wrap break-all" style={{ overflowWrap: 'anywhere', wordBreak: 'break-all' }}>{element.textElement.content}</span>
   if (element.picElement) {
@@ -51,11 +57,19 @@ export const MessageElementRenderer = memo<{ element: MessageElement; message?: 
       displayWidth = maxWidth
     }
     
+    const handleContextMenu = (e: React.MouseEvent) => {
+      if (!message) return
+      e.preventDefault()
+      e.stopPropagation()
+      imageContextMenuContext?.showMenu(e, message, element.elementId)
+    }
+    
     return (
       <div 
         className="relative rounded-lg overflow-hidden bg-theme-item cursor-pointer"
         style={{ width: displayWidth, height: displayHeight }}
         onClick={() => previewContext?.showPreview(proxyUrl)}
+        onContextMenu={handleContextMenu}
       >
         {!imageLoaded && !imageError && (
           <div className="absolute inset-0 flex items-center justify-center text-theme-hint">

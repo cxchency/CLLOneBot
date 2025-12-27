@@ -11,7 +11,7 @@ import { showToast } from '../common'
 import { UserProfileCard } from './profile/UserProfileCard'
 import { GroupProfileCard } from './profile/GroupProfileCard'
 import { ImagePreviewModal, VideoPreviewModal } from './common/PreviewModals'
-import { ImagePreviewContext, VideoPreviewContext } from './message/MessageElements'
+import { ImagePreviewContext, VideoPreviewContext, ImageContextMenuContext } from './message/MessageElements'
 import { RawMessageBubble, TempMessageBubble, MessageContextMenuContext, AvatarContextMenuContext, ScrollToMessageContext, GroupMembersContext, FriendsContext } from './message/MessageBubble'
 import type { TempMessage, AvatarContextMenuInfo, FriendInfo } from './message/MessageBubble'
 import { MuteDialog, KickConfirmDialog, TitleDialog } from './chat/ChatDialogs'
@@ -90,7 +90,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null)
   const [previewVideoUrl, setPreviewVideoUrl] = useState<{ chatType: number; peerUid: string; msgId: string; elementId: string } | null>(null)
   const [replyTo, setReplyTo] = useState<RawMessage | null>(null)
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; message: RawMessage } | null>(null)
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; message: RawMessage; elementId?: string } | null>(null)
   const [avatarContextMenu, setAvatarContextMenu] = useState<AvatarContextMenuInfo | null>(null)
   const [userProfile, setUserProfile] = useState<{ profile: UserProfile | null; loading: boolean; position: { x: number; y: number } } | null>(null)
   const [groupProfile, setGroupProfile] = useState<{ profile: GroupProfile | null; loading: boolean; position: { x: number; y: number } } | null>(null)
@@ -114,6 +114,12 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
   const messageContextMenuValue = useMemo(() => ({
     showMenu: (e: React.MouseEvent, message: RawMessage) => {
       setContextMenu({ x: e.clientX, y: e.clientY, message })
+    }
+  }), [])
+  
+  const imageContextMenuValue = useMemo(() => ({
+    showMenu: (e: React.MouseEvent, message: RawMessage, elementId: string) => {
+      setContextMenu({ x: e.clientX, y: e.clientY, message, elementId })
     }
   }), [])
   
@@ -666,6 +672,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
   return (
     <ImagePreviewContext.Provider value={imagePreviewContextValue}>
     <VideoPreviewContext.Provider value={videoPreviewContextValue}>
+    <ImageContextMenuContext.Provider value={imageContextMenuValue}>
     <MessageContextMenuContext.Provider value={messageContextMenuValue}>
     <AvatarContextMenuContext.Provider value={avatarContextMenuValue}>
     <ScrollToMessageContext.Provider value={scrollToMessageContextValue}>
@@ -964,6 +971,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
     </ScrollToMessageContext.Provider>
     </AvatarContextMenuContext.Provider>
     </MessageContextMenuContext.Provider>
+    </ImageContextMenuContext.Provider>
     </VideoPreviewContext.Provider>
     </ImagePreviewContext.Provider>
   )
