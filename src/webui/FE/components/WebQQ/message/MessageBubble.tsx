@@ -35,10 +35,18 @@ export const GroupMembersContext = React.createContext<{
   getMembers: (groupCode: string) => GroupMemberItem[] | null
 } | null>(null)
 
+// 临时消息元素类型
+export interface TempMessageItem {
+  type: 'text' | 'face' | 'image' | 'at'
+  content?: string
+  faceId?: number
+  imageUrl?: string
+  atName?: string
+}
+
 export interface TempMessage {
   msgId: string
-  text?: string
-  imageUrl?: string
+  items: TempMessageItem[]
   timestamp: number
   status: 'sending' | 'sent' | 'failed'
 }
@@ -367,8 +375,29 @@ export const TempMessageBubble = memo<{ message: TempMessage; onRetry: () => voi
           <div 
             className="rounded-2xl px-4 py-2 bg-theme-item text-theme rounded-tr-sm min-w-[80px] max-w-full break-words overflow-hidden shadow-sm"
           >
-            {message.text && <span className="whitespace-pre-wrap break-words">{message.text}</span>}
-            {message.imageUrl && <img src={message.imageUrl} alt="图片" loading="lazy" className="max-w-full rounded-lg" style={{ maxHeight: '200px' }} />}
+            {message.items.map((item, index) => {
+              if (item.type === 'text' && item.content) {
+                return <span key={index} className="whitespace-pre-wrap break-words">{item.content}</span>
+              }
+              if (item.type === 'face' && item.faceId !== undefined) {
+                return (
+                  <img 
+                    key={index}
+                    src={`/face/${item.faceId}.png`}
+                    alt={`[表情${item.faceId}]`}
+                    className="inline-block align-text-bottom"
+                    style={{ width: 24, height: 24 }}
+                  />
+                )
+              }
+              if (item.type === 'image' && item.imageUrl) {
+                return <img key={index} src={item.imageUrl} alt="图片" loading="lazy" className="max-w-full rounded-lg" style={{ maxHeight: '200px' }} />
+              }
+              if (item.type === 'at' && item.atName) {
+                return <span key={index} className="text-blue-500">@{item.atName}</span>
+              }
+              return null
+            })}
           </div>
           {message.status === 'sending' && <Loader2 size={14} className="animate-spin text-theme-hint" />}
           {message.status === 'failed' && <AlertCircle size={14} className="text-red-500" />}

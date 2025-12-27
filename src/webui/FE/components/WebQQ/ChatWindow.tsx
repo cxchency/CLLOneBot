@@ -154,7 +154,18 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
     
     const tempItems: MessageItem[] = tempMessages.map(msg => ({ type: 'temp' as const, data: msg }))
     const systemItems: MessageItem[] = systemTips.map(tip => ({ type: 'system' as const, data: tip }))
+    
+    // 合并所有消息并按时间排序
     const items = [...rawItems, ...tempItems, ...systemItems]
+    items.sort((a, b) => {
+      const getTimestamp = (item: MessageItem): number => {
+        if (item.type === 'raw') return parseInt(item.data.msgTime) * 1000
+        if (item.type === 'temp') return item.data.timestamp
+        return item.data.timestamp // system tip
+      }
+      return getTimestamp(a) - getTimestamp(b)
+    })
+    
     allItemsRef.current = items
     return items
   }, [messages, tempMessages, systemTips])

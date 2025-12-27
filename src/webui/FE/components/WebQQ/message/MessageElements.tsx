@@ -202,7 +202,28 @@ export const MessageElementRenderer = memo<{ element: MessageElement; message?: 
     return <span className="text-theme-hint text-xs">[系统提示]</span>
   }
   if (element.arkElement) return <span>[卡片消息]</span>
-  if (element.marketFaceElement) return <span>[{element.marketFaceElement.faceName || '表情包'}]</span>
+  if (element.marketFaceElement) {
+    const { emojiId, faceName, supportSize } = element.marketFaceElement
+    const { width = 200, height = 200 } = supportSize?.[0] ?? {}
+    const dir = emojiId.substring(0, 2)
+    const url = `https://gxh.vip.qq.com/club/item/parcel/item/${dir}/${emojiId}/raw${Math.min(width, 300)}.gif`
+    return (
+      <img 
+        src={url}
+        alt={faceName || '[表情包]'}
+        title={faceName}
+        className="inline-block align-text-bottom rounded"
+        style={{ maxWidth: Math.min(width, 200), maxHeight: Math.min(height, 200) }}
+        onError={(e) => {
+          const target = e.target as HTMLImageElement
+          target.style.display = 'none'
+          const span = document.createElement('span')
+          span.textContent = `[${faceName || '表情包'}]`
+          target.parentNode?.insertBefore(span, target)
+        }}
+      />
+    )
+  }
   return null
 })
 

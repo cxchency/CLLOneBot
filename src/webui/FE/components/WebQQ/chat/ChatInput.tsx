@@ -7,6 +7,7 @@ import { sendMessage, uploadImage, uploadImageByUrl, uploadFile, isValidImageFor
 import { useWebQQStore, hasVisitedChat } from '../../../stores/webqqStore'
 import { showToast } from '../../common'
 import type { ChatSession, RawMessage, GroupMemberItem } from '../../../types/webqq'
+import type { TempMessageItem } from '../message/MessageBubble'
 
 export interface ChatInputRef {
   insertAt: (uid: string, uin: string, name: string) => void
@@ -19,7 +20,7 @@ interface ChatInputProps {
   onReplyCancel: () => void
   onSendStart: () => void
   onSendEnd: () => void
-  onTempMessage: (msg: { msgId: string; text?: string; imageUrl?: string; timestamp: number; status: 'sending' | 'failed' }) => void
+  onTempMessage: (msg: { msgId: string; items: TempMessageItem[]; timestamp: number; status: 'sending' | 'failed' }) => void
   onTempMessageRemove: (msgId: string) => void
   onTempMessageFail: (msgId: string) => void
 }
@@ -135,17 +136,17 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>((props, ref) =
     onReplyCancel()
     setHasContent(false)
 
-    const previewText = items.map(item => {
-      if (item.type === 'text') return item.content
-      if (item.type === 'face') return '[表情]'
-      if (item.type === 'image') return '[图片]'
-      if (item.type === 'at') return `@${item.atName}`
-      return ''
-    }).join('')
+    // 转换为临时消息的 items 格式
+    const tempItems: TempMessageItem[] = items.map(item => ({
+      type: item.type,
+      content: item.content,
+      faceId: item.faceId,
+      imageUrl: item.imageUrl,
+      atName: item.atName
+    }))
     
     const tempId = `temp_${Date.now()}`
-    const imageItem = items.find(i => i.type === 'image')
-    onTempMessage({ msgId: tempId, text: previewText || undefined, imageUrl: imageItem?.imageUrl, timestamp: Date.now(), status: 'sending' })
+    onTempMessage({ msgId: tempId, items: tempItems, timestamp: Date.now(), status: 'sending' })
 
     try {
       const content: any[] = []
@@ -210,7 +211,7 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>((props, ref) =
     onSendStart()
     
     const tempId = `temp_${Date.now()}`
-    onTempMessage({ msgId: tempId, text: `[文件] ${file.name}`, timestamp: Date.now(), status: 'sending' })
+    onTempMessage({ msgId: tempId, items: [{ type: 'text', content: `[文件] ${file.name}` }], timestamp: Date.now(), status: 'sending' })
     
     try {
       const uploadResult = await uploadFile(file)

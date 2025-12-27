@@ -103,12 +103,14 @@ export const MessageContextMenu: React.FC<MessageContextMenuProps> = ({
         >
           <Reply size={14} /> 回复
         </button>
-        <button 
-          onClick={() => { onEmojiReaction(msg, contextMenu.x, contextMenu.y); onClose() }} 
-          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-theme hover:bg-theme-item-hover transition-colors"
-        >
-          <Smile size={14} /> 贴表情
-        </button>
+        {session.chatType === 2 && (
+          <button 
+            onClick={() => { onEmojiReaction(msg, contextMenu.x, contextMenu.y); onClose() }} 
+            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-theme hover:bg-theme-item-hover transition-colors"
+          >
+            <Smile size={14} /> 贴表情
+          </button>
+        )}
         {canRecall && (
           <button 
             onClick={async () => {
