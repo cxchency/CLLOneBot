@@ -516,6 +516,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
       }
       
       setTempMessages([])
+      setSystemTips([])
       shouldScrollRef.current = true
       
       // 首次挂载或未访问过的聊天，从 API 加载最新消息
@@ -540,8 +541,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
           console.log('[ChatWindow] IndexedDB cache hit:', validCachedMessages.length, 'valid messages')
           if (validCachedMessages.length > 0) {
             messageCacheRef.current.set(sessionKey, validCachedMessages)
-            // 只有当前没有消息时才设置缓存消息
-            setMessages(prev => prev.length === 0 ? validCachedMessages : prev)
+            // 始终使用 IndexedDB 缓存，因为它可能包含 SSE 推送的新消息
+            setMessages(validCachedMessages)
           }
         } else {
           console.log('[ChatWindow] IndexedDB cache miss')
@@ -561,6 +562,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
     } else {
       setMessages([])
       setTempMessages([])
+      setSystemTips([])
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.peerId, session?.chatType])
