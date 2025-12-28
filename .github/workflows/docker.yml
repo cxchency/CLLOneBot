@@ -70,6 +70,8 @@ jobs:
             --platform linux/amd64,linux/arm64 \
             -t "$username/llbot:$version" \
             -t "$username/llbot:latest" \
+            -t "$username/llonebot:$version" \
+            -t "$username/llonebot:latest" \
             -f docker/Dockerfile \
             --push \
             .
@@ -80,3 +82,5 @@ jobs:
           echo "📦 Image tags:"
           echo "  - ${{ secrets.DOCKER_USERNAME }}/llbot:${{ steps.version.outputs.version }}"
           echo "  - ${{ secrets.DOCKER_USERNAME }}/llbot:latest"
+          echo "  - ${{ secrets.DOCKER_USERNAME }}/llonebot:${{ steps.version.outputs.version }}"
+          echo "  - ${{ secrets.DOCKER_USERNAME }}/llonebot:latest"

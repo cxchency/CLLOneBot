@@ -1,6 +1,10 @@
 V7.3.0
-更新时间 2025-12-
+更新时间 2025-12-28
 
+* WebUI 新增 WebQQ
+* WebUI 新增 夜间模式
+* 优化 Linux CLI 启动脚本，避免二次启动端口占用导致 PMHQ 连不上 QQ
+* Linux CLI 新增支持 Arch 系统
 * Milky 修复 API `recall_private_message` 在临时会话场景中不可用
 * Milky 修复 API `get_message` 在好友、临时会话场景中不可用
 * Milky 修复 API `get_history_messages` 在好友、临时会话场景中不可用
