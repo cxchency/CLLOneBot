@@ -15,9 +15,19 @@ confirm() {
 }
 
 find_port() {
+    # 让系统自动分配可用端口
+    local port=$(python3 -c 'import socket; s=socket.socket(); s.bind(("",0)); print(s.getsockname()[1]); s.close()' 2>/dev/null)
+    if [ -n "$port" ]; then
+        echo $port
+        return 0
+    fi
+    # 回退方案：从指定端口开始查找
     local port=$1
     while [ $port -lt 65535 ]; do
-        if ! ss -tuln | grep -q ":$port "; then echo $port; return 0; fi
+        if ! ss -tuln 2>/dev/null | grep -q ":$port " && ! netstat -tuln 2>/dev/null | grep -q ":$port "; then
+            echo $port
+            return 0
+        fi
         ((port++))
     done
     return 1
@@ -51,20 +61,25 @@ install_arch() {
 }
 
 install_debian() {
-    local ARCH_MAP=( ["x86_64"]="amd64" ["aarch64"]="arm64" )
-    local ARCH=${ARCH_MAP[$(uname -m)]}
-    [ -z "$ARCH" ] && error "不支持的架构: $(uname -m)"
+    local MACHINE=$(uname -m)
+    local ARCH=""
+    case "$MACHINE" in
+        x86_64)  ARCH="amd64" ;;
+        aarch64) ARCH="arm64" ;;
+        *)       error "不支持的架构: $MACHINE" ;;
+    esac
 
     if [ ! -f "/opt/QQ/qq" ] && confirm "未检测到 QQ，是否安装?"; then
         log "下载并安装 QQ ($ARCH)..."
         sudo apt-get update && sudo apt-get install -y wget
         local DEB="/tmp/qq.deb"
-        wget -O "$DEB" "https://dldir1v6.qq.com/qqfile/qq/QQNT/ec800879/linuxqq_3.2.20-41768_$ARCH.deb" || error "下载失败"
+        wget -O "$DEB" "https://dldir1v6.qq.com/qqfile/qq/QQNT/ab90fdfa/linuxqq_3.2.20-40768_$ARCH.deb" || error "下载失败"
 
-        # 依赖判断
-        local LIB_SND="alsa-utils"
-        apt-cache policy libasound2t64 2>/dev/null | grep -q "Candidate:" && LIB_SND="libasound2t64"
-        apt-cache policy libasound2 2>/dev/null | grep -q "Candidate:" && LIB_SND="libasound2"
+        # 依赖判断 (新版 Ubuntu 24.04+ 用 libasound2t64，旧版用 libasound2)
+        local LIB_SND="libasound2"
+        if apt-cache show libasound2t64 &>/dev/null; then
+            LIB_SND="libasound2t64"
+        fi
 
         echo "使用 ALSA 库包: $LIB_SND"
 
@@ -91,11 +106,21 @@ HAS_DISPLAY=0
 
 echo "------------------------------------------------"
 echo "1) GUI 模式"
-echo "2) Shell 模式"
+echo "2) Shell 模式 (默认)"
 echo "------------------------------------------------"
-DEFAULT_CHOICE=$([ $HAS_DISPLAY -eq 1 ] && echo "1" || echo "2")
-read -p "请选择 [1/2] (默认 $DEFAULT_CHOICE): " MODE_CHOICE
-MODE_CHOICE=${MODE_CHOICE:-$DEFAULT_CHOICE}
+
+MODE_CHOICE=""
+TIMEOUT=5
+while [ $TIMEOUT -gt 0 ]; do
+    printf "\r请选择 [1/2] (${TIMEOUT}秒后默认选择 Shell): "
+    if read -t 1 -n 1 MODE_CHOICE; then
+        echo ""
+        break
+    fi
+    ((TIMEOUT--))
+done
+[ $TIMEOUT -eq 0 ] && echo "" && log "超时，使用默认 Shell 模式"
+MODE_CHOICE=${MODE_CHOICE:-2}
 USE_XVFB=$([ "$MODE_CHOICE" == "2" ] && echo 1 || echo 0)
 
 # 授权 X11
