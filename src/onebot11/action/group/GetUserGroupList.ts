@@ -17,7 +17,7 @@ class GetUserGroupList extends BaseAction<Payload, OB11Group[]> {
     for (const group of groupList) {
       try {
         const members = await this.ctx.ntGroupApi.getGroupMembers(group.groupCode, false)
-        for (const member of members.values()) {
+        for (const member of members.result.infos.values()) {
           if (member.uin === userUin) {
             result.push(await OB11Entities.group(group))
             break
