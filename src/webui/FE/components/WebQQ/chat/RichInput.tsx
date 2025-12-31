@@ -63,7 +63,9 @@ export const RichInput = forwardRef<RichInputRef, RichInputProps>(({
       
       if (node.nodeType === Node.TEXT_NODE) {
         const text = node.textContent || ''
-        if (text) items.push({ type: 'text', content: text })
+        // 移除零宽空格（Firefox 兼容用），保留其他所有字符包括普通空格
+        const cleaned = text.replace(/\u200B/g, '')
+        if (cleaned) items.push({ type: 'text', content: cleaned })
       } else if (node.nodeType === Node.ELEMENT_NODE) {
         const el = node as HTMLElement
         
@@ -77,7 +79,8 @@ export const RichInput = forwardRef<RichInputRef, RichInputProps>(({
           items.push({ type: 'text', content: '\n' })
         } else {
           const text = el.textContent || ''
-          if (text) items.push({ type: 'text', content: text })
+          const cleaned = text.replace(/\u200B/g, '')
+          if (cleaned) items.push({ type: 'text', content: cleaned })
         }
       }
     }
@@ -203,15 +206,24 @@ export const RichInput = forwardRef<RichInputRef, RichInputProps>(({
       if (editor.contains(range.commonAncestorContainer)) {
         range.deleteContents()
         range.insertNode(span)
-        range.setStartAfter(span)
-        range.setEndAfter(span)
+        
+        // Firefox 兼容：在不可编辑元素后插入零宽空格，确保光标有落脚点
+        const zws = document.createTextNode('\u200B')
+        span.after(zws)
+        
+        range.setStartAfter(zws)
+        range.setEndAfter(zws)
         selection.removeAllRanges()
         selection.addRange(range)
       } else {
         editor.appendChild(span)
+        const zws = document.createTextNode('\u200B')
+        editor.appendChild(zws)
       }
     } else {
       editor.appendChild(span)
+      const zws = document.createTextNode('\u200B')
+      editor.appendChild(zws)
     }
     
     editor.focus()
@@ -241,15 +253,25 @@ export const RichInput = forwardRef<RichInputRef, RichInputProps>(({
       if (editor.contains(range.commonAncestorContainer)) {
         range.deleteContents()
         range.insertNode(span)
-        range.setStartAfter(span)
-        range.setEndAfter(span)
+        
+        // Firefox 兼容：在不可编辑元素后插入零宽空格，确保光标有落脚点
+        const zws = document.createTextNode('\u200B')
+        span.after(zws)
+        
+        range.setStartAfter(zws)
+        range.setEndAfter(zws)
         selection.removeAllRanges()
         selection.addRange(range)
       } else {
         editor.appendChild(span)
+        // Firefox 兼容：末尾也需要零宽空格
+        const zws = document.createTextNode('\u200B')
+        editor.appendChild(zws)
       }
     } else {
       editor.appendChild(span)
+      const zws = document.createTextNode('\u200B')
+      editor.appendChild(zws)
     }
     
     editor.focus()
