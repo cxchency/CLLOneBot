@@ -1,5 +1,5 @@
 import React, { useRef, useCallback, useState, forwardRef, useImperativeHandle, useEffect } from 'react'
-import { Send, Loader2, Smile, Image as ImageIcon, Paperclip, Reply, X, Sticker } from 'lucide-react'
+import { Send, Smile, Image as ImageIcon, Paperclip, Reply, X, Sticker } from 'lucide-react'
 import { RichInput, type RichInputRef, type RichInputItem, type MentionState } from './RichInput'
 import { MentionPicker } from './MentionPicker'
 import { EmojiPicker, FavEmojiPicker, type FavEmoji } from '../message'
@@ -33,7 +33,6 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>((props, ref) =
   const fileUploadInputRef = useRef<HTMLInputElement>(null)
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [showFavEmojiPicker, setShowFavEmojiPicker] = useState(false)
-  const [sending, setSending] = useState(false)
   const [hasContent, setHasContent] = useState(false)
   
   // @ 提及相关状态
@@ -129,12 +128,14 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>((props, ref) =
     const isEmpty = richInputRef.current.isEmpty()
     if (isEmpty) return
     
-    setSending(true)
     onSendStart()
     const currentReplyTo = replyTo
     richInputRef.current.clear()
     onReplyCancel()
     setHasContent(false)
+    
+    // 立即聚焦回输入框
+    setTimeout(() => richInputRef.current?.focus(), 0)
 
     // 转换为临时消息的 items 格式
     const tempItems: TempMessageItem[] = items.map(item => ({
@@ -169,14 +170,12 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>((props, ref) =
       
       if (content.length === 0) { onTempMessageRemove(tempId); return }
       await sendMessage({ chatType: session.chatType, peerId: session.peerId, content })
-      onTempMessageRemove(tempId)
+      // 发送成功后不移除临时消息，等待 SSE 消息到达时自动替换
     } catch (e: any) {
       showToast('发送失败', 'error')
       onTempMessageFail(tempId)
     } finally {
-      setSending(false)
       onSendEnd()
-      setTimeout(() => richInputRef.current?.focus(), 50)
     }
   }, [session, replyTo, onSendStart, onSendEnd, onReplyCancel, onTempMessage, onTempMessageRemove, onTempMessageFail])
 
@@ -207,7 +206,6 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>((props, ref) =
     if (fileUploadInputRef.current) fileUploadInputRef.current.value = ''
     
     // 直接发送文件
-    setSending(true)
     onSendStart()
     
     const tempId = `temp_${Date.now()}`
@@ -220,12 +218,11 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>((props, ref) =
         peerId: session.peerId, 
         content: [{ type: 'file', filePath: uploadResult.filePath, fileName: uploadResult.fileName }] 
       })
-      onTempMessageRemove(tempId)
+      // 发送成功后不移除临时消息，等待 SSE 消息到达时自动替换
     } catch (e: any) {
       showToast('发送失败', 'error')
       onTempMessageFail(tempId)
     } finally {
-      setSending(false)
       onSendEnd()
     }
   }, [session, onSendStart, onSendEnd, onTempMessage, onTempMessageRemove, onTempMessageFail])
@@ -271,16 +268,16 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>((props, ref) =
 
       <div className="px-4 pt-0.5 pb-3">
         <div className="flex items-center gap-1 mb-2 relative">
-          <button onClick={() => { setShowEmojiPicker(!showEmojiPicker); setShowFavEmojiPicker(false) }} disabled={sending} className={`p-2 rounded-lg transition-colors disabled:opacity-50 ${showEmojiPicker ? 'text-pink-500 bg-pink-50 dark:bg-pink-900/30' : 'text-theme-muted hover:text-pink-500 hover:bg-pink-50 dark:hover:bg-pink-900/30'}`} title="表情">
+          <button onClick={() => { setShowEmojiPicker(!showEmojiPicker); setShowFavEmojiPicker(false) }} className={`p-2 rounded-lg transition-colors ${showEmojiPicker ? 'text-pink-500 bg-pink-50 dark:bg-pink-900/30' : 'text-theme-muted hover:text-pink-500 hover:bg-pink-50 dark:hover:bg-pink-900/30'}`} title="表情">
             <Smile size={18} />
           </button>
-          <button onClick={() => { setShowFavEmojiPicker(!showFavEmojiPicker); setShowEmojiPicker(false) }} disabled={sending} className={`p-2 rounded-lg transition-colors disabled:opacity-50 ${showFavEmojiPicker ? 'text-pink-500 bg-pink-50 dark:bg-pink-900/30' : 'text-theme-muted hover:text-pink-500 hover:bg-pink-50 dark:hover:bg-pink-900/30'}`} title="收藏表情">
+          <button onClick={() => { setShowFavEmojiPicker(!showFavEmojiPicker); setShowEmojiPicker(false) }} className={`p-2 rounded-lg transition-colors ${showFavEmojiPicker ? 'text-pink-500 bg-pink-50 dark:bg-pink-900/30' : 'text-theme-muted hover:text-pink-500 hover:bg-pink-50 dark:hover:bg-pink-900/30'}`} title="收藏表情">
             <Sticker size={18} />
           </button>
-          <button onClick={() => fileInputRef.current?.click()} disabled={sending} className="p-2 text-theme-muted hover:text-pink-500 hover:bg-pink-50 dark:hover:bg-pink-900/30 rounded-lg transition-colors disabled:opacity-50" title="图片">
+          <button onClick={() => fileInputRef.current?.click()} className="p-2 text-theme-muted hover:text-pink-500 hover:bg-pink-50 dark:hover:bg-pink-900/30 rounded-lg transition-colors" title="图片">
             <ImageIcon size={18} />
           </button>
-          <button onClick={() => fileUploadInputRef.current?.click()} disabled={sending} className="p-2 text-theme-muted hover:text-pink-500 hover:bg-pink-50 dark:hover:bg-pink-900/30 rounded-lg transition-colors disabled:opacity-50" title="文件">
+          <button onClick={() => fileUploadInputRef.current?.click()} className="p-2 text-theme-muted hover:text-pink-500 hover:bg-pink-50 dark:hover:bg-pink-900/30 rounded-lg transition-colors" title="文件">
             <Paperclip size={18} />
           </button>
           {showEmojiPicker && <EmojiPicker onSelect={handleEmojiSelect} onClose={() => setShowEmojiPicker(false)} />}
@@ -294,7 +291,6 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>((props, ref) =
             <RichInput 
               ref={richInputRef} 
               placeholder="输入消息..." 
-              disabled={sending} 
               onEnter={handleSend} 
               onPaste={handlePaste} 
               onChange={handleContentChange}
@@ -312,8 +308,8 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>((props, ref) =
               onClose={handleMentionClose}
             />
           )}
-          <button onClick={handleSend} disabled={sending || !hasContent} className="p-2.5 bg-pink-500 text-white rounded-xl hover:bg-pink-600 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0">
-            {sending ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} />}
+          <button onClick={handleSend} disabled={!hasContent} className="p-2.5 bg-pink-500 text-white rounded-xl hover:bg-pink-600 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0">
+            <Send size={20} />
           </button>
         </div>
       </div>

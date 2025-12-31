@@ -327,8 +327,24 @@ export const RichInput = forwardRef<RichInputRef, RichInputProps>(({
     }
   }, [onChange, cancelMention])
 
+  // 聚焦并将光标移到末尾
+  const focus = useCallback(() => {
+    const editor = editorRef.current
+    if (!editor) return
+    editor.focus()
+    // 将光标移到末尾
+    const selection = window.getSelection()
+    if (selection) {
+      const range = document.createRange()
+      range.selectNodeContents(editor)
+      range.collapse(false) // false = 折叠到末尾
+      selection.removeAllRanges()
+      selection.addRange(range)
+    }
+  }, [])
+
   useImperativeHandle(ref, () => ({
-    focus: () => editorRef.current?.focus(),
+    focus,
     clear,
     insertFace,
     insertImage,
@@ -336,7 +352,7 @@ export const RichInput = forwardRef<RichInputRef, RichInputProps>(({
     getContent: parseContent,
     isEmpty,
     cancelMention
-  }), [clear, insertFace, insertImage, insertAt, parseContent, isEmpty, cancelMention])
+  }), [focus, clear, insertFace, insertImage, insertAt, parseContent, isEmpty, cancelMention])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     // 如果在 @ 模式中，让 MentionPicker 处理方向键和回车

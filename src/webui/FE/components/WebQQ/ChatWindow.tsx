@@ -265,6 +265,11 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
     if (onNewMessageCallback) {
       const handleNewMessage = (msg: RawMessage) => {
         if (!msg || !msg.msgId || !msg.elements || !Array.isArray(msg.elements)) return
+        
+        // 检查是否是自己发送的消息
+        const selfUid = getSelfUid()
+        const isSelfMessage = msg.senderUid === selfUid
+        
         setMessages(prev => {
           if (prev.some(m => m && m.msgId === msg.msgId)) return prev
           const newMessages = [...prev, msg]
@@ -272,7 +277,34 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
           if (currentSession) appendCachedMessage(currentSession.chatType, currentSession.peerId, msg)
           return newMessages
         })
-        setTempMessages(prev => prev.filter(t => t.status !== 'sending'))
+        
+        // 如果是自己发送的消息，移除对应的临时消息
+        // 使用时间戳匹配：SSE 消息时间应该在临时消息时间附近（5秒内）
+        if (isSelfMessage) {
+          const msgTime = parseInt(msg.msgTime) * 1000
+          setTempMessages(prev => {
+            // 找到时间最接近的 sending 状态的临时消息并移除
+            const sendingMsgs = prev.filter(t => t.status === 'sending')
+            if (sendingMsgs.length === 0) return prev
+            
+            // 找时间差最小的
+            let closestIdx = -1
+            let minDiff = Infinity
+            sendingMsgs.forEach((t, idx) => {
+              const diff = Math.abs(msgTime - t.timestamp)
+              if (diff < minDiff && diff < 5000) { // 5秒内
+                minDiff = diff
+                closestIdx = idx
+              }
+            })
+            
+            if (closestIdx >= 0) {
+              const toRemove = sendingMsgs[closestIdx]
+              return prev.filter(t => t.msgId !== toRemove.msgId)
+            }
+            return prev
+          })
+        }
       }
       onNewMessageCallback(handleNewMessage)
     }
