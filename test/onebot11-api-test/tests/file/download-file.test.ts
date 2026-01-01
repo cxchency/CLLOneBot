@@ -5,8 +5,7 @@
 
 import { setupMessageTest, teardownMessageTest, MessageTestContext } from '../setup';
 import { Assertions } from '@/utils/Assertions';
-import { ActionName } from '@llonebot/onebot11/action/types';
-import { MediaPaths } from '../media';
+import { ActionName } from '@llbot/onebot11/action/types';
 
 describe('download_file - 下载文件', () => {
   let context: MessageTestContext;

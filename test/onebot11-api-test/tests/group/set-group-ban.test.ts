@@ -1,13 +1,13 @@
 ﻿/**
  * set_group_ban 接口测试
  * 测试群组单人禁言功能
- * 
+ *
  * 注意: 需要管理员权限
  */
 
 import { setupMessageTest, teardownMessageTest, MessageTestContext } from '../setup';
 import { Assertions } from '@/utils/Assertions';
-import { ActionName } from '@llonebot/onebot11/action/types';
+import { ActionName } from '@llbot/onebot11/action/types';
 
 describe('set_group_ban - 群组单人禁言', () => {
   let context: MessageTestContext;

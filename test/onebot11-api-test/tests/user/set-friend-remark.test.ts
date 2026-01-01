@@ -5,7 +5,7 @@
 
 import { setupMessageTest, teardownMessageTest, MessageTestContext } from '../setup';
 import { Assertions } from '@/utils/Assertions';
-import { ActionName } from '@llonebot/onebot11/action/types';
+import { ActionName } from '@llbot/onebot11/action/types';
 
 describe('set_friend_remark - 设置好友备注', () => {
   let context: MessageTestContext;

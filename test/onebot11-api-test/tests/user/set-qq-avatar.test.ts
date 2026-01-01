@@ -1,13 +1,13 @@
 ﻿/**
  * set_qq_avatar 接口测试
  * 测试设置 QQ 头像功能
- * 
+ *
  * 警告：此测试会实际修改 QQ 头像，请谨慎使用
  */
 
 import { setupMessageTest, teardownMessageTest, MessageTestContext } from '../setup';
 import { Assertions } from '@/utils/Assertions';
-import { ActionName } from '@llonebot/onebot11/action/types';
+import { ActionName } from '@llbot/onebot11/action/types';
 
 describe('set_qq_avatar - 设置 QQ 头像', () => {
   let context: MessageTestContext;

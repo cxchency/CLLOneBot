@@ -26,7 +26,7 @@ COPY docker/startup.sh /startup.sh
 
 RUN chmod +x /startup.sh
 
-RUN wget https://github.com/LLOneBot/LLOneBot/releases/download/v$LLBOT_VERSION/LLBot.zip -O /app/llbot.zip
+RUN wget https://github.com/LLOneBot/LuckyLilliaBot/releases/download/v$LLBOT_VERSION/LLBot.zip -O /app/llbot.zip
 
 #COPY /dist/llonebot.zip /app/llonebot.zip
 

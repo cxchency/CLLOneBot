@@ -5,7 +5,7 @@
 
 import { setupMessageTest, teardownMessageTest, MessageTestContext } from '../setup';
 import { Assertions } from '@/utils/Assertions';
-import { ActionName } from '@llonebot/onebot11/action/types';
+import { ActionName } from '@llbot/onebot11/action/types';
 
 describe('get_group_member_list - 获取群成员列表', () => {
   let context: MessageTestContext;
@@ -39,7 +39,7 @@ describe('get_group_member_list - 获取群成员列表', () => {
     // 验证测试账号在列表中
     const primaryMember = response.data.find((m: any) => m.user_id === Number(context.primaryUserId));
     const secondaryMember = response.data.find((m: any) => m.user_id === Number(context.secondaryUserId));
-    
+
     Assertions.assertDefined(primaryMember, 'Primary user should be in member list');
     Assertions.assertDefined(secondaryMember, 'Secondary user should be in member list');
   }, 30000);

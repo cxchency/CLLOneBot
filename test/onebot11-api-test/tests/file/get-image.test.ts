@@ -5,8 +5,8 @@
 
 import { setupMessageTest, teardownMessageTest, MessageTestContext } from '../setup';
 import { Assertions } from '@/utils/Assertions';
-import { ActionName } from '@llonebot/onebot11/action/types';
-import { OB11MessageDataType, OB11MessageData } from '@llonebot/onebot11/types';
+import { ActionName } from '@llbot/onebot11/action/types';
+import { OB11MessageDataType, OB11MessageData } from '@llbot/onebot11/types';
 import { MediaPaths } from '../media';
 
 describe('get_image - 获取图片信息', () => {
@@ -54,7 +54,7 @@ describe('get_image - 获取图片信息', () => {
     // 获取图片的 file ID
     const messages = Array.isArray(event.message) ? event.message : [];
     const imageMsg = messages.find((msg: OB11MessageData) => msg.type === OB11MessageDataType.Image);
-    
+
     if (!imageMsg || !imageMsg.data.file) {
       throw new Error('未找到图片消息');
     }
