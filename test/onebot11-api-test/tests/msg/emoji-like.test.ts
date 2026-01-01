@@ -6,8 +6,8 @@
 
 import { setupMessageTest, teardownMessageTest, MessageTestContext } from '../setup';
 import { Assertions } from '@/utils/Assertions';
-import { ActionName } from '@llonebot/onebot11/action/types';
-import { OB11MessageDataType, OB11MessageData } from '@llonebot/onebot11/types';
+import { ActionName } from '@llbot/onebot11/action/types';
+import { OB11MessageDataType, OB11MessageData } from '@llbot/onebot11/types';
 
 describe('emoji_like - 消息表情回应', () => {
   let context: MessageTestContext;

@@ -681,7 +681,7 @@ function App() {
                 <p className="text-theme-secondary mb-6">使你的 QQNT 支持 OneBot 11 协议、Satori 协议、Milky 协议进行 QQ 机器人开发</p>
                 <div className="flex items-center justify-center gap-4">
                   <a
-                    href="https://github.com/LLOneBot/LLOneBot"
+                    href="https://github.com/LLOneBot/LuckyLilliaBot"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="px-6 py-2.5 bg-gray-800 dark:bg-neutral-700 text-white rounded-xl hover:bg-gray-900 dark:hover:bg-neutral-600 transition-colors flex items-center gap-2"
@@ -692,7 +692,7 @@ function App() {
                     GitHub
                   </a>
                   <a
-                    href="https://llonebot.com"
+                    href="https://luckylillia.com"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="px-6 py-2.5 gradient-primary text-white rounded-xl hover:shadow-lg transition-all flex items-center gap-2"

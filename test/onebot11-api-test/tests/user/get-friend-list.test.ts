@@ -5,7 +5,7 @@
 
 import { setupMessageTest, teardownMessageTest, MessageTestContext } from '../setup';
 import { Assertions } from '@/utils/Assertions';
-import { ActionName } from '@llonebot/onebot11/action/types';
+import { ActionName } from '@llbot/onebot11/action/types';
 
 describe('get_friend_list - 获取好友列表', () => {
   let context: MessageTestContext;
@@ -25,7 +25,7 @@ describe('get_friend_list - 获取好友列表', () => {
 
     Assertions.assertSuccess(response, 'get_friend_list');
     Assertions.assertDefined(response.data, '好友列表应该被定义');
-    
+
     if (Array.isArray(response.data) && response.data.length > 0) {
       const friend = response.data[0];
       Assertions.assertDefined(friend.user_id, '好友 user_id 应该被定义');

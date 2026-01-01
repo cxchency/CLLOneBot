@@ -1,13 +1,13 @@
 ﻿/**
  * set_friend_add_request 接口测试
  * 测试处理好友请求功能
- * 
+ *
  * 注意：此测试需要有实际的好友请求才能执行
  */
 
 import { setupMessageTest, teardownMessageTest, MessageTestContext } from '../setup';
 import { Assertions } from '@/utils/Assertions';
-import { ActionName } from '@llonebot/onebot11/action/types';
+import { ActionName } from '@llbot/onebot11/action/types';
 
 describe('set_friend_add_request - 处理好友请求', () => {
   let context: MessageTestContext;

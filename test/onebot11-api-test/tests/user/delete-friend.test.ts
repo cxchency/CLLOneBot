@@ -1,13 +1,13 @@
 ﻿/**
  * delete_friend 接口测试
  * 测试删除好友功能
- * 
+ *
  * 警告：此测试会实际删除好友，请谨慎使用
  */
 
 import { setupMessageTest, teardownMessageTest, MessageTestContext } from '../setup';
 import { Assertions } from '@/utils/Assertions';
-import { ActionName } from '@llonebot/onebot11/action/types';
+import { ActionName } from '@llbot/onebot11/action/types';
 
 describe('delete_friend - 删除好友', () => {
   let context: MessageTestContext;

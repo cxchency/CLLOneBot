@@ -168,7 +168,7 @@ export class SendForwardMsg extends BaseAction<Payload, Response> {
     const resid = await this.ctx.app.pmhq.uploadForward(peer, raw.multiMsgItems)
     const uuid = randomUUID()
     try {
-      const msg = await this.ctx.ntMsgApi.sendMsg(peer, [{
+      const msg = await this.ctx.app.sendMessage(this.ctx, peer, [{
         elementType: 10,
         elementId: '',
         arkElement: {
@@ -200,8 +200,8 @@ export class SendForwardMsg extends BaseAction<Payload, Response> {
             view: 'contact',
           }),
         },
-      }], 1800)
-      const msgShortId = this.ctx.store.createMsgShortId(msg!)
+      }], encoder.deleteAfterSentFiles)
+      const msgShortId = this.ctx.store.createMsgShortId(msg)
       return { message_id: msgShortId, forward_id: resid }
     } catch (e) {
       this.ctx.logger.error('合并转发失败', e)

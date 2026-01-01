@@ -10,7 +10,7 @@ export interface InvalidCheckResult {
 }
 
 export enum ActionName {
-  // llonebot
+  // llbot
   ScanQRCode = 'scan_qrcode',
   GetGroupAlbumList = 'get_group_album_list',
   CreateGroupAlbum = 'create_group_album',

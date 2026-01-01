@@ -1,6 +1,6 @@
 ﻿import { setupMessageTest, teardownMessageTest, MessageTestContext } from '../setup';
 import { Assertions } from '@/utils/Assertions';
-import { ActionName } from '@llonebot/onebot11/action/types';
+import { ActionName } from '@llbot/onebot11/action/types';
 
 describe('set_group_portrait', () => {
     let context: MessageTestContext;
@@ -16,7 +16,7 @@ describe('set_group_portrait', () => {
     it('should set group portrait', async () => {
         const primaryClient = context.twoAccountTest.getClient('primary');
 
-        // Use a dummy image URL or a local file if available. 
+        // Use a dummy image URL or a local file if available.
         // For this test, we'll assume a public image URL is available or skip if not.
         const imageUrl = 'https://avatars.githubusercontent.com/u/1010101?v=4'; // Example URL
 

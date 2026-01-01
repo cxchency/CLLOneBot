@@ -5,7 +5,7 @@
 
 import { setupMessageTest, teardownMessageTest, MessageTestContext } from '../setup';
 import { Assertions } from '@/utils/Assertions';
-import { ActionName } from '@llonebot/onebot11/action/types';
+import { ActionName } from '@llbot/onebot11/action/types';
 
 describe('group_file_extra - 群文件额外操作', () => {
   let context: MessageTestContext;
@@ -26,10 +26,10 @@ describe('group_file_extra - 群文件额外操作', () => {
       group_id: context.testGroupId
     });
 
-    if (rootResponse.retcode === 0 && 
+    if (rootResponse.retcode === 0 &&
         rootResponse.data.files && rootResponse.data.files.length > 0 &&
         rootResponse.data.folders && rootResponse.data.folders.length > 0) {
-      
+
       const fileId = rootResponse.data.files[0].file_id;
       const targetFolderId = rootResponse.data.folders[0].folder_id;
 
