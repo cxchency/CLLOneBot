@@ -18,6 +18,8 @@ const AnimatedBackground: React.FC = () => {
   const ballsRef = useRef<Ball[]>([]);
   const animationRef = useRef<number>();
   const lastTimeRef = useRef<number>(0);
+  // 记录初始视口大小，避免输入法弹出时重新计算
+  const initialSizeRef = useRef<{ width: number; height: number } | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -29,12 +31,31 @@ const AnimatedBackground: React.FC = () => {
     const targetFPS = 30;
     const frameInterval = 1000 / targetFPS;
 
+    // 获取稳定的视口大小（使用 document.documentElement 避免输入法影响）
+    const getStableSize = () => {
+      // 优先使用初始大小，避免输入法弹出时的抖动
+      if (initialSizeRef.current) {
+        return initialSizeRef.current;
+      }
+      // 使用 documentElement 的尺寸，在移动端更稳定
+      const width = Math.max(window.innerWidth, document.documentElement.clientWidth);
+      const height = Math.max(window.innerHeight, document.documentElement.clientHeight);
+      return { width, height };
+    };
+
     const resizeCanvas = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      ballsRef.current.forEach(ball => {
-        ball.offscreenCanvas = createBallCanvas(ball);
-      });
+      const size = getStableSize();
+      // 只在画布变大时更新，避免输入法弹出时缩小
+      if (!initialSizeRef.current || size.width > canvas.width || size.height > canvas.height) {
+        canvas.width = size.width;
+        canvas.height = size.height;
+        if (!initialSizeRef.current) {
+          initialSizeRef.current = size;
+        }
+        ballsRef.current.forEach(ball => {
+          ball.offscreenCanvas = createBallCanvas(ball);
+        });
+      }
     };
 
     const colors = [
@@ -169,13 +190,21 @@ const AnimatedBackground: React.FC = () => {
       });
     };
 
+    // 防抖处理 resize，避免输入法弹出时频繁触发
+    let resizeTimeout: ReturnType<typeof setTimeout> | null = null;
+    const debouncedResize = () => {
+      if (resizeTimeout) clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(resizeCanvas, 200);
+    };
+
     resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
+    window.addEventListener('resize', debouncedResize);
     initBalls();
     animationRef.current = requestAnimationFrame(animate);
 
     return () => {
-      window.removeEventListener('resize', resizeCanvas);
+      window.removeEventListener('resize', debouncedResize);
+      if (resizeTimeout) clearTimeout(resizeTimeout);
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }
