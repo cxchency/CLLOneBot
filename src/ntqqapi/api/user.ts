@@ -4,7 +4,6 @@ import { HttpUtil } from '@/common/utils/request'
 import { Time } from 'cosmokit'
 import { Context, Service } from 'cordis'
 import { selfInfo } from '@/common/globalVars'
-import { uidUinBidiMap } from '@/ntqqapi/cache'
 import { ReceiveCmdS } from '../hook'
 
 declare module 'cordis' {
@@ -31,18 +30,15 @@ export class NTQQUserApi extends Service {
   }
 
   async getUidByUin(uin: string, groupCode?: string) {
-    const uid = uidUinBidiMap.getKey(uin)
-    if (uid) return uid
-
     const funcs = [
       async () => {
-        return (await invoke('nodeIKernelUixConvertService/getUid', [[uin]]))?.uidInfo.get(uin)
+        return (await invoke('nodeIKernelUixConvertService/getUid', [[uin]])).uidInfo.get(uin)
       },
       async () => {
         return (await invoke('nodeIKernelGroupService/getUidByUins', [[uin]])).uids.get(uin)
       },
       async () => {
-        return (await invoke('nodeIKernelProfileService/getUidByUin', ['FriendsServiceImpl', [uin]]))?.get(uin)
+        return (await invoke('nodeIKernelProfileService/getUidByUin', ['FriendsServiceImpl', [uin]])).get(uin)
       },
       async () => {
         return (await this.getUserDetailInfoByUin(uin)).detail.uid
@@ -59,7 +55,6 @@ export class NTQQUserApi extends Service {
       try {
         const uid = await f()
         if (uid && !uid.includes('****')) {
-          uidUinBidiMap.set(uid, uin)
           return uid
         }
       } catch (e) {
@@ -74,19 +69,12 @@ export class NTQQUserApi extends Service {
   }
 
   async getUinByUid(uid: string): Promise<string> {
-    const uin = uidUinBidiMap.get(uid)
-    if (uin) return uin
-
     const funcs = [
       async () => {
-        const uin = (await invoke('nodeIKernelUixConvertService/getUin', [[uid]])).uinInfo.get(uid) || ''
-        this.ctx.logger.info('nodeIKernelUixConvertService/getUin', uin)
-        return uin
+        return (await invoke('nodeIKernelUixConvertService/getUin', [[uid]])).uinInfo.get(uid)
       },
       async () => {
-        const uin = (await this.fetchUserDetailInfo(uid)).detail.get(uid)?.uin
-        this.ctx.logger.info('fetchUserDetailInfo', uin)
-        return uin
+        return (await this.fetchUserDetailInfo(uid)).detail.get(uid)?.uin
       },
     ]
 
@@ -94,7 +82,6 @@ export class NTQQUserApi extends Service {
       try {
         const result = await f()
         if (result) {
-          uidUinBidiMap.set(uid, result)
           return result
         }
       } catch (e) {
