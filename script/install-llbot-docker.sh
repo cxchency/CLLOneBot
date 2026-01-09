@@ -63,10 +63,44 @@ docker_mirror=""
 PMHQ_TAG="latest"
 LLBOT_TAG="latest"
 
+# Docker 镜像源列表
+DOCKER_MIRRORS=(
+  "docker.1panel.live"
+  "docker.1ms.run"
+  "hub.rat.dev"
+  "001090.xyz"
+)
+
+# 测试镜像源是否可用
+test_mirror() {
+  local mirror=$1
+  local tag=$2
+  echo "测试镜像源: ${mirror} ..."
+  if docker manifest inspect "${mirror}/linyuchen/llbot:${tag}" > /dev/null 2>&1; then
+    return 0
+  fi
+  return 1
+}
+
+# 查找可用的镜像源
+find_available_mirror() {
+  local tag=$1
+  for mirror in "${DOCKER_MIRRORS[@]}"; do
+    if test_mirror "$mirror" "$tag"; then
+      echo "找到可用镜像源: ${mirror}"
+      echo "${mirror}/"
+      return 0
+    fi
+    echo "镜像源 ${mirror} 不可用"
+  done
+  echo "所有镜像源均不可用，将使用官方源"
+  echo ""
+  return 1
+}
+
 read -p "是否使用docker镜像源(y/n): " use_docker_mirror
 
 if [[ "$use_docker_mirror" =~ ^[yY]$ ]]; then
-  docker_mirror="docker.1panel.live/"
   echo "正在获取最新版本信息..."
   
   # 获取PMHQ最新标签
@@ -83,12 +117,14 @@ if [[ "$use_docker_mirror" =~ ^[yY]$ ]]; then
   LLBOT_RELEASE=$(curl -s -L "https://gh-proxy.com/https://api.github.com/repos/LLOneBot/LuckyLilliaBot/releases/latest")
   if [ $? -eq 0 ]; then
     LLBOT_TAG=$(echo "$LLBOT_RELEASE" | grep -o '"tag_name": "[^"]*' | cut -d'"' -f4 | sed 's/^v//')
-    # 如果获取到的 TAG 为空，则使用 latest
     [ -z "$LLBOT_TAG" ] && LLBOT_TAG="latest"
     echo "LLBot 最新版本: $LLBOT_TAG"
   else
     echo "警告: 无法获取LLBot最新版本，使用latest"
   fi
+
+  echo "正在检测可用的镜像源..."
+  docker_mirror=$(find_available_mirror "$LLBOT_TAG")
 fi
 # 生成docker-compose.yml（使用双引号包裹并保留转义）
 cat << EOF > docker-compose.yml
