@@ -78,30 +78,38 @@ jobs:
       - name: Compress for Linux CLI x64
         run: |
           mkdir llbot-cli-linux-x64
+          mkdir -p bin/llbot
+          mkdir -p bin/pmhq
           cd llbot-cli-linux-x64
           cp ../dist/使用说明.txt ./
           cp ../dist/更新日志.txt ./
-          cp -r ../dist ./llbot
+          cp -r ../dist ./bin/llbot
           wget https://github.com/linyuchen/PMHQ/releases/latest/download/pmhq-linux-x64.zip
           unzip pmhq-linux-x64.zip
           rm pmhq-linux-x64.zip
-          mv pmhq-linux-x64 llbot/pmhq
+          mv pmhq-linux-x64 bin/pmhq/pmhq
+          mv libpmhq.so bin/pmhq/
           wget https://github.com/LLOneBot/exe/releases/latest/download/node-linux-x64 -O llbot/node
+          wget https://github.com/LLOneBot/LLBot.CLI/releases/latest/download/llbot-linux-x64 -O llbot
           cp ../script/start-linux.sh ./start.sh
           zip -r ../LLBot-CLI-linux-x64.zip ./*
 
       - name: Compress for Linux CLI arm64
         run: |
           mkdir llbot-cli-linux-arm64
+          mkdir -p bin/llbot
+          mkdir -p bin/pmhq
           cd llbot-cli-linux-arm64
           cp ../dist/使用说明.txt ./
           cp ../dist/更新日志.txt ./
-          cp -r ../dist ./llbot
+          cp -r ../dist ./bin/llbot
           wget https://github.com/linyuchen/PMHQ/releases/latest/download/pmhq-linux-arm64.zip
           unzip pmhq-linux-arm64.zip
           rm pmhq-linux-arm64.zip
-          mv pmhq-linux-arm64 llbot/pmhq
+          mv pmhq-linux-arm64 llbot/pmhq/pmhq
+          mv libpmhq.so bin/pmhq/
           wget https://github.com/LLOneBot/exe/releases/latest/download/node-linux-arm64 -O llbot/node
+          wget https://github.com/LLOneBot/LLBot.CLI/releases/latest/download/llbot-linux-arm64 -O llbot
           cp ../script/start-linux.sh ./start.sh
           zip -r ../LLBot-CLI-linux-arm64.zip ./*
 
@@ -191,7 +199,6 @@ jobs:
             ${{ steps.changelog.outputs.BODY }}
 
             **Windows Desktop 版本只支持 Windows Server 2016 / Windows 10 及以上版本**
-            **Windows CLI 版本只支持 Windows server 2012 R2 / Windows 8.1 及以上版本**
 
       - name: Publish to npm
         if: startsWith(github.ref, 'refs/tags/')
