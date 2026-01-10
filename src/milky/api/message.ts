@@ -273,6 +273,10 @@ const GetMessage = defineApi(
     }
 
     const rawMsg = msgResult.msgList[0]
+    if (rawMsg.elements[0].grayTipElement?.subElementType === 1) {
+      return Failed(-404, 'Message not found')
+    }
+
     if (payload.message_scene === 'friend') {
       const friend = await ctx.ntUserApi.getUserSimpleInfo(rawMsg.senderUid)
       const category = await ctx.ntFriendApi.getCategoryById(friend.baseInfo.categoryId)
@@ -324,24 +328,23 @@ const GetHistoryMessages = defineApi(
       msgList = (await ctx.ntMsgApi.getMsgsBySeqAndCount(peer, payload.start_message_seq.toString(), payload.limit, true, true)).msgList
     }
 
-    if (msgList.length === 0) {
+    const filteredMsgList = msgList.filter(msg => {
+      if (!msg.senderUid) return false
+      if (msg.elements[0].grayTipElement?.subElementType === 1) return false
+      return true
+    })
+    if (filteredMsgList.length === 0) {
       return Ok({
         messages: [],
         next_message_seq: undefined,
       })
     }
 
-    const filteredMsgList = msgList.filter(msg => {
-      if (!msg.senderUid) return false
-      if (msg.elements[0].grayTipElement?.subElementType === 1) return false
-      return true
-    })
     const transformedMessages: GetHistoryMessagesOutput['messages'] = []
-
     if (payload.message_scene === 'friend') {
+      const friend = await ctx.ntUserApi.getUserSimpleInfo(filteredMsgList[0].peerUid)
+      const category = await ctx.ntFriendApi.getCategoryById(friend.baseInfo.categoryId)
       for (const msg of filteredMsgList) {
-        const friend = await ctx.ntUserApi.getUserSimpleInfo(msg.senderUid)
-        const category = await ctx.ntFriendApi.getCategoryById(friend.baseInfo.categoryId)
         transformedMessages.push(await transformIncomingPrivateMessage(ctx, friend, category, msg))
       }
     } else if (payload.message_scene === 'group') {
@@ -351,9 +354,9 @@ const GetHistoryMessages = defineApi(
         transformedMessages.push(await transformIncomingGroupMessage(ctx, group, member, msg))
       }
     } else {
+      const { tmpChatInfo } = await ctx.ntMsgApi.getTempChatInfo(100, filteredMsgList[0].peerUid)
+      const group = await ctx.ntGroupApi.getGroupAllInfo(tmpChatInfo.groupCode)
       for (const msg of filteredMsgList) {
-        const { tmpChatInfo } = await ctx.ntMsgApi.getTempChatInfo(100, msg.peerUid)
-        const group = await ctx.ntGroupApi.getGroupAllInfo(tmpChatInfo.groupCode)
         transformedMessages.push(await transformIncomingTempMessage(ctx, group, msg))
       }
     }
