@@ -1,7 +1,14 @@
-V7.4.1
-更新时间 2026-01-
+V7.5.0
+更新时间 2026-01-10
 
+* 支持 44498
+* 使用 Avalonia 重构 Desktop，优化使用体验
 * OneBot 支持发送视频时指定 cover
+* WebQQ 自带表情更换成可动的 apng
+* WebQQ 支持更多的自带表情
+* WebQQ 贴表情支持 Emoji 表情
+* Linux 版本采用新版 Rust 重构的 PMHQ
+* CLI 支持 --update 参数，可自动更新相关文件，更多参数可使用 --help 获取
 
 =================
 V7.4.0
