@@ -37,6 +37,10 @@ export class SendForwardMsg extends BaseAction<Payload, Response> {
     messages: Schema.array(Schema.any()),
     message: Schema.array(Schema.any()),
     message_type: Schema.union(['group', 'private']),
+    source: Schema.string(),
+    news: Schema.array(Schema.object({ text: Schema.string() })),
+    summary: Schema.string(),
+    prompt: Schema.string(),
   })
 
   protected async _handle(payload: Payload) {
