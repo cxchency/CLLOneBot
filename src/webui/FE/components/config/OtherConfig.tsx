@@ -1,6 +1,7 @@
 import React from 'react'
 import { Config } from '../../types'
 import { Globe, FileText, Trash2, Music, Lock, Clock, Shield, Edit, Paperclip } from 'lucide-react'
+import { DurationPicker } from '../common'
 
 interface OtherConfigProps {
   config: Config;
@@ -105,10 +106,15 @@ const OtherConfig: React.FC<OtherConfigProps> = ({ config, onChange, onOpenChang
         <label className='block'>
           <div className='flex items-center gap-2 mb-2'>
             <Clock size={16} className='text-pink-500' />
-            <span className='text-sm font-medium text-theme-secondary'>消息缓存过期时间（秒）</span>
+            <span className='text-sm font-medium text-theme-secondary'>消息缓存过期时间</span>
           </div>
-          <input type='number' value={config.msgCacheExpire} onChange={(e) => handleChange('msgCacheExpire', parseInt(e.target.value))} min='1' max='86400' className='input-field' placeholder='3600' />
-          <p className='text-xs text-theme-muted mt-1'>消息在缓存中保留的时间（1-86400秒）</p>
+          <DurationPicker 
+            value={config.msgCacheExpire || 120} 
+            onChange={(seconds) => handleChange('msgCacheExpire', seconds)} 
+            maxDays={1}
+            showSeconds={false}
+          />
+          <p className='text-xs text-theme-muted mt-2'>消息在缓存中保留的时间，最长1天</p>
         </label>
       </div>
 

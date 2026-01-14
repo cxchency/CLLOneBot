@@ -196,7 +196,7 @@ class Store extends Service {
     }
     setTimeout(() => {
       this.messages.delete(id)
-    }, expire)
+    }, expire * 1000)
   }
 
   getMsgCache(msgId: string) {
