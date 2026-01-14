@@ -62,6 +62,7 @@ export const DurationPicker: React.FC<DurationPickerProps> = ({
   }
 
   const cols = showSeconds ? 4 : 3
+  const inputClassName = "w-full px-2 py-2 text-center bg-theme-input border border-theme-input rounded-lg text-theme focus:outline-none focus:ring-2 focus:ring-pink-500/20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
 
   return (
     <div className={`grid gap-2`} style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
@@ -73,7 +74,7 @@ export const DurationPicker: React.FC<DurationPickerProps> = ({
             max={maxDays}
             value={days}
             onChange={(e) => handleDaysChange(parseInt(e.target.value) || 0)}
-            className="w-full px-2 py-2 text-center bg-theme-input border border-theme-input rounded-lg text-theme focus:outline-none focus:ring-2 focus:ring-pink-500/20"
+            className={inputClassName}
           />
           <span className="text-xs text-theme-secondary mt-1">天</span>
         </div>
@@ -85,7 +86,7 @@ export const DurationPicker: React.FC<DurationPickerProps> = ({
           max={23}
           value={hours}
           onChange={(e) => handleHoursChange(parseInt(e.target.value) || 0)}
-          className="w-full px-2 py-2 text-center bg-theme-input border border-theme-input rounded-lg text-theme focus:outline-none focus:ring-2 focus:ring-pink-500/20"
+          className={inputClassName}
         />
         <span className="text-xs text-theme-secondary mt-1">小时</span>
       </div>
@@ -96,7 +97,7 @@ export const DurationPicker: React.FC<DurationPickerProps> = ({
           max={59}
           value={minutes}
           onChange={(e) => handleMinutesChange(parseInt(e.target.value) || 0)}
-          className="w-full px-2 py-2 text-center bg-theme-input border border-theme-input rounded-lg text-theme focus:outline-none focus:ring-2 focus:ring-pink-500/20"
+          className={inputClassName}
         />
         <span className="text-xs text-theme-secondary mt-1">分钟</span>
       </div>
@@ -108,7 +109,7 @@ export const DurationPicker: React.FC<DurationPickerProps> = ({
             max={59}
             value={seconds}
             onChange={(e) => handleSecondsChange(parseInt(e.target.value) || 0)}
-            className="w-full px-2 py-2 text-center bg-theme-input border border-theme-input rounded-lg text-theme focus:outline-none focus:ring-2 focus:ring-pink-500/20"
+            className={inputClassName}
           />
           <span className="text-xs text-theme-secondary mt-1">秒</span>
         </div>
