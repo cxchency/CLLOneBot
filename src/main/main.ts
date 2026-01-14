@@ -102,7 +102,7 @@ async function onLoad() {
     })
     ctx.plugin(MilkyAdapter, config.milky)
     ctx.plugin(Store, {
-      msgCacheExpire: config.msgCacheExpire! * 1000,
+      msgCacheExpire: config.msgCacheExpire!,
     })
   }
 
