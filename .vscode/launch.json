@@ -12,7 +12,7 @@
                 "<node_internals>/**"
             ],
             "runtimeExecutable": "tsx",
-            "args": ["watch", "src/main/main.ts", "--pmhq-port=${input:pmhqPort}"],
+            "args": ["watch", "src/main/main.ts", "--pmhq-port=${input:pmhqPort}", "--pmhq-host=${input:pmhqHost}"],
             "cwd": "${workspaceFolder}",
             "console": "integratedTerminal"
         },
@@ -38,6 +38,12 @@
             "type": "promptString",
             "description": "PMHQ Port",
             "default": "13000"
+        },
+        {
+            "id": "pmhqHost",
+            "type": "promptString",
+            "description": "PMHQ Host",
+            "default": "127.0.0.1"
         },
         {
             "id": "webuiPort",
