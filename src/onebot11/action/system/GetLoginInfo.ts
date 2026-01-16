@@ -10,8 +10,7 @@ class GetLoginInfo extends BaseAction<{}, OB11User> {
   protected async _handle() {
     for (let i = 0; i < 5; i++) {
       try {
-        const nick = await this.ctx.ntUserApi.getSelfNick(true)
-        if (!nick) throw new Error('Empty nick')
+        await this.ctx.ntUserApi.getSelfNick(true)
         break
       } catch {
         await sleep(500)
