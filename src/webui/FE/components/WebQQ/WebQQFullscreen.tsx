@@ -1,5 +1,5 @@
 import React from 'react'
-import { WebQQPage } from './index'
+import WebQQPage from './WebQQPage'
 
 /**
  * WebQQ 全屏版本
