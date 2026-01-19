@@ -29,7 +29,7 @@ const webuiDefault: WebUIConfig = {
 }
 export const defaultConfig: Config = {
   webui: webuiDefault,
-  onlyLocalhost: true,
+  onlyLocalhost: false,
   milky: milkyDefault,
   satori: satoriDefault,
   ob11: ob11Default,
