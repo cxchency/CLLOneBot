@@ -1,42 +1,27 @@
 import { Router, Request, Response } from 'express'
 import { Context } from 'cordis'
-import { getConfigUtil } from '@/common/config'
-import { EmailConfig } from '@/common/types'
-import { EmailConfigManager } from '@/common/emailConfig'
-import { EmailService } from '@/common/emailService'
-
-const DEFAULT_EMAIL_CONFIG: EmailConfig = {
-  enabled: false,
-  smtp: {
-    host: '',
-    port: 587,
-    secure: false,
-    auth: {
-      user: '',
-      pass: '',
-    },
-  },
-  from: '',
-  to: '',
-}
+import { EmailConfig } from '@/common/emailConfig'
 
 export function createEmailRoutes(ctx: Context): Router {
   const router = Router()
 
-  // 获取邮件配置
   router.get('/config', async (_req: Request, res: Response) => {
     try {
-      const config = getConfigUtil().getConfig()
-      const emailConfig = config.email || DEFAULT_EMAIL_CONFIG
+      const emailService = ctx.emailNotification
+      if (!emailService) {
+        res.status(500).json({ success: false, message: '邮件服务未初始化' })
+        return
+      }
+
+      const config = emailService.getConfigManager().getConfig()
       
-      // 隐藏密码
       const maskedConfig = {
-        ...emailConfig,
+        ...config,
         smtp: {
-          ...emailConfig.smtp,
+          ...config.smtp,
           auth: {
-            ...emailConfig.smtp.auth,
-            pass: emailConfig.smtp.auth.pass ? '********' : '',
+            ...config.smtp.auth,
+            pass: config.smtp.auth.pass ? '********' : '',
           },
         },
       }
@@ -54,10 +39,15 @@ export function createEmailRoutes(ctx: Context): Router {
     }
   })
 
-  // 保存邮件配置（已废弃，现在通过主配置保存）
   router.post('/config', async (req: Request, res: Response) => {
     try {
-      const { config: emailConfig } = req.body as { config: EmailConfig }
+      const emailService = ctx.emailNotification
+      if (!emailService) {
+        res.status(500).json({ success: false, message: '邮件服务未初始化' })
+        return
+      }
+
+      const emailConfig: EmailConfig = req.body
       
       if (!emailConfig) {
         res.status(400).json({
@@ -67,18 +57,24 @@ export function createEmailRoutes(ctx: Context): Router {
         return
       }
 
-      const mainConfig = getConfigUtil().getConfig()
-      const currentEmailConfig = mainConfig.email || DEFAULT_EMAIL_CONFIG
+      const configManager = emailService.getConfigManager()
+      const currentConfig = configManager.getConfig()
       
-      // 如果密码是掩码，使用当前密码
       if (emailConfig.smtp.auth.pass === '********' || emailConfig.smtp.auth.pass === '') {
-        emailConfig.smtp.auth.pass = currentEmailConfig.smtp.auth.pass
+        emailConfig.smtp.auth.pass = currentConfig.smtp.auth.pass
       }
       
-      mainConfig.email = emailConfig
-      getConfigUtil().setConfig(mainConfig)
-      
-      ctx.parallel('llob/config-updated', mainConfig)
+      const validation = configManager.validateConfig(emailConfig)
+      if (!validation.valid) {
+        res.status(400).json({
+          success: false,
+          message: `配置验证失败：${validation.errors.join(', ')}`,
+        })
+        return
+      }
+
+      await configManager.saveConfig(emailConfig)
+      ctx.parallel('llbot/email-config-updated', emailConfig)
       
       res.json({
         success: true,
@@ -93,25 +89,25 @@ export function createEmailRoutes(ctx: Context): Router {
     }
   })
 
-  // 发送测试邮件
   router.post('/test', async (req: Request, res: Response) => {
     try {
+      const emailService = ctx.emailNotification
+      if (!emailService) {
+        res.status(500).json({ success: false, message: '邮件服务未初始化' })
+        return
+      }
+
       const { config: testConfig } = req.body as { config?: EmailConfig }
       
-      // 使用提供的配置或当前保存的配置
       let emailConfig: EmailConfig
       if (testConfig) {
         emailConfig = testConfig
       } else {
-        const mainConfig = getConfigUtil().getConfig()
-        emailConfig = mainConfig.email || DEFAULT_EMAIL_CONFIG
+        emailConfig = emailService.getConfigManager().getConfig()
       }
       
-      // 创建临时的配置管理器和邮件服务进行测试
-      const tempConfigManager = new EmailConfigManager('', ctx.logger)
-      tempConfigManager['config'] = emailConfig
-      
-      const validation = tempConfigManager.validateConfig(emailConfig)
+      const configManager = emailService.getConfigManager()
+      const validation = configManager.validateConfig(emailConfig)
       if (!validation.valid) {
         res.status(400).json({
           success: false,
@@ -120,7 +116,13 @@ export function createEmailRoutes(ctx: Context): Router {
         return
       }
       
-      const tempEmailService = new EmailService(tempConfigManager, ctx.logger)
+      const tempConfigManager = new (configManager.constructor as any)('', ctx.logger)
+      tempConfigManager['config'] = emailConfig
+      const tempEmailService = new (emailService.getEmailService().constructor as any)(
+        tempConfigManager,
+        ctx.logger
+      )
+      
       const result = await tempEmailService.sendTestEmail()
       
       if (result.success) {

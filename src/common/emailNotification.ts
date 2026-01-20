@@ -3,7 +3,9 @@ import { EmailService, BotInfo } from './emailService.js'
 import { EmailConfigManager } from './emailConfig.js'
 import { KickedOffLineInfo } from '@/ntqqapi/types/index.js'
 import { selfInfo } from '@/common/globalVars.js'
-import { getConfigUtil } from '@/common/config.js'
+import { DATA_DIR } from '@/common/globalVars.js'
+import { watch } from 'node:fs'
+import path from 'node:path'
 
 declare module 'cordis' {
   interface Context {
@@ -16,25 +18,24 @@ export class EmailNotificationService extends Service {
   private configManager: EmailConfigManager
   private notificationSent: boolean = false
   private hasLoggedIn: boolean = false
+  private configPath: string
+  private fileWatcher: ReturnType<typeof watch> | null = null
 
   constructor(ctx: Context) {
     super(ctx, 'emailNotification', true)
 
-    // 创建一个临时的配置管理器用于验证和邮件服务
-    this.configManager = new EmailConfigManager('', ctx.logger)
+    this.configPath = path.join(DATA_DIR, 'email_config.json')
+    this.configManager = new EmailConfigManager(this.configPath, ctx.logger)
     this.emailService = new EmailService(this.configManager, ctx.logger)
 
     this.initializeConfig()
     this.registerEventListeners()
+    this.watchConfigFile()
   }
 
   private async initializeConfig() {
     try {
-      // 从主配置中加载邮件配置
-      const mainConfig = getConfigUtil().getConfig()
-      if (mainConfig.email) {
-        this.configManager['config'] = mainConfig.email
-      }
+      await this.configManager.loadConfig()
       this.ctx.logger.info('[EmailNotification] Service initialized')
     } catch (error) {
       this.ctx.logger.error('[EmailNotification] Failed to initialize:', error)
@@ -42,20 +43,9 @@ export class EmailNotificationService extends Service {
   }
 
   private registerEventListeners() {
-    // 插件加载时就认为已经登录（因为插件是在登录后才加载的）
     this.hasLoggedIn = true
     this.ctx.logger.info('[EmailNotification] Service started after login')
 
-    // 监听配置更新
-    this.ctx.on('llob/config-updated', (config) => {
-      if (config.email) {
-        this.configManager['config'] = config.email
-        this.ctx.logger.info('[EmailNotification] Config updated')
-      }
-    })
-
-    // 监听 selfInfo.online 的变化来检测重新登录
-    // 当 selfInfo.online 从 false 变为 true 时，说明重新登录了
     let wasOffline = false
     
     this.ctx.on('nt/kicked-offLine', (info: KickedOffLineInfo) => {
@@ -63,20 +53,35 @@ export class EmailNotificationService extends Service {
       this.onOffline(info)
     })
 
-    // 使用定时器检查 selfInfo.online 状态
     const checkLoginStatus = setInterval(() => {
       if (wasOffline && selfInfo.online) {
-        // 从离线恢复到在线，重置通知标志
         this.ctx.logger.info('[EmailNotification] Bot reconnected, resetting notification flag')
         this.notificationSent = false
         wasOffline = false
       }
-    }, 5000) // 每5秒检查一次
+    }, 5000)
 
-    // 清理定时器
     this.ctx.on('dispose', () => {
       clearInterval(checkLoginStatus)
+      if (this.fileWatcher) {
+        this.fileWatcher.close()
+      }
     })
+  }
+
+  private watchConfigFile() {
+    try {
+      this.fileWatcher = watch(this.configPath, async (eventType) => {
+        if (eventType === 'change') {
+          this.ctx.logger.info('[EmailNotification] Config file changed, reloading')
+          await this.configManager.loadConfig()
+          this.ctx.parallel('llbot/email-config-updated', this.configManager.getConfig())
+        }
+      })
+      this.ctx.logger.info('[EmailNotification] Watching config file:', this.configPath)
+    } catch (error) {
+      this.ctx.logger.error('[EmailNotification] Failed to watch config file:', error)
+    }
   }
 
   private onOffline(info: KickedOffLineInfo) {

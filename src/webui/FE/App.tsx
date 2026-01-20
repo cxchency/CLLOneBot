@@ -130,16 +130,39 @@ function App() {
     try {
       setLoading(true);
       const finalConfig = configToSave || config;
+      
+      // 保存主配置
       const response = await apiFetch('/api/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ config: finalConfig }),
       });
-      if (response.success) {
-        showToast('配置保存成功', 'success');
-      } else {
+      
+      if (!response.success) {
         showToast(response.message || '保存失败', 'error');
+        return;
       }
+      
+      // 如果有邮件配置，同时保存到独立文件
+      if (finalConfig.email) {
+        try {
+          const emailResponse = await apiFetch('/api/email/config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(finalConfig.email),
+          });
+          
+          if (!emailResponse.success) {
+            showToast(`主配置已保存，但邮件配置保存失败：${emailResponse.message}`, 'warning');
+            return;
+          }
+        } catch (emailError: any) {
+          showToast(`主配置已保存，但邮件配置保存失败：${emailError.message}`, 'warning');
+          return;
+        }
+      }
+      
+      showToast('配置保存成功', 'success');
     } catch (error: any) {
       showToast(error.message || '保存失败', 'error');
     } finally {

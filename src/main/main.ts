@@ -44,10 +44,12 @@ import { WebUIServer } from '../webui/BE/server'
 import { pmhq } from '@/ntqqapi/native/pmhq'
 import { sleep } from '@/common/utils'
 import EmailNotificationService from '@/common/emailNotification'
+import { EmailConfig } from '@/common/emailConfig'
 
 declare module 'cordis' {
   interface Events {
     'llob/config-updated': (input: LLOBConfig) => void
+    'llbot/email-config-updated': (input: EmailConfig) => void
   }
 }
 
