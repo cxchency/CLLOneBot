@@ -101,7 +101,22 @@ function App() {
             nick: response.data.selfInfo.nick || '',
             uin: response.data.selfInfo.uin,
           });
-          setConfig(response.data.config)
+          
+          // 获取主配置
+          const mainConfig = response.data.config;
+          
+          // 获取邮件配置
+          try {
+            const emailResponse = await apiFetch<{ enabled: boolean; smtp: any; from: string; to: string }>('/api/email/config');
+            if (emailResponse.success && emailResponse.data) {
+              mainConfig.email = emailResponse.data;
+            }
+          } catch (e) {
+            console.error('Failed to fetch email config:', e);
+          }
+          
+          setConfig(mainConfig);
+          
           // 获取 QQ 版本号（单独 try-catch，不影响登录状态）
           try {
             const deviceInfoRes = await apiFetch<{ devType: string; buildVer: string }>('/api/device-info');
