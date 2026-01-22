@@ -16,7 +16,15 @@ const OtherConfig: React.FC<OtherConfigProps> = ({ config, onChange, onOpenChang
   }
 
   const handleEmailChange = (emailConfig: EmailConfig) => {
-    onChange({ ...config, email: emailConfig })
+    // 如果端口为空，使用默认值 587
+    const normalizedConfig = {
+      ...emailConfig,
+      smtp: {
+        ...emailConfig.smtp,
+        port: emailConfig.smtp.port || 587
+      }
+    }
+    onChange({ ...config, email: normalizedConfig })
   }
 
   // 默认邮件配置

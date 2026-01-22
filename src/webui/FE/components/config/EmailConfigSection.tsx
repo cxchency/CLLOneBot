@@ -46,7 +46,15 @@ const EmailConfigSection: React.FC<EmailConfigSectionProps> = (props) => {
 
     try {
       setTesting(true)
-      const result = await testEmail(value)
+      // 如果端口为空，使用默认值 587
+      const testConfig = {
+        ...value,
+        smtp: {
+          ...value.smtp,
+          port: value.smtp.port || 587
+        }
+      }
+      const result = await testEmail(testConfig)
       showToast(result.message || '测试邮件发送成功', 'success')
     } catch (error: any) {
       showToast(error.message || '测试邮件发送失败', 'error')
@@ -142,7 +150,10 @@ const EmailConfigSection: React.FC<EmailConfigSectionProps> = (props) => {
               <input
                 type='number'
                 value={value.smtp.port}
-                onChange={(e) => handleChange('smtp.port', parseInt(e.target.value) || 587)}
+                onChange={(e) => {
+                  const val = e.target.value
+                  handleChange('smtp.port', val === '' ? '' : parseInt(val) || 587)
+                }}
                 className={`input-field ${errors.port ? 'border-red-500' : ''}`}
                 placeholder='587'
                 min='1'
