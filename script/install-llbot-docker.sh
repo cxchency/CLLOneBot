@@ -349,6 +349,7 @@ services:
       - app_network
     volumes:
       - qq_volume:/root/.config/QQ
+    restart: unless-stopped
 
   llbot:
     image: ${docker_mirror}linyuchen/llbot:${LLBOT_TAG}
@@ -365,6 +366,7 @@ $([ ${#SERVICE_PORTS[@]} -gt 0 ] && echo "    ports:" && for port in "${!SERVICE
       - ./llbot_config:/app/llbot/data:rw
     depends_on:
       - pmhq
+    restart: unless-stopped
 
 volumes:
   qq_volume:
