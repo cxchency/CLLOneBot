@@ -43,10 +43,13 @@ import { version } from '../version'
 import { WebUIServer } from '../webui/BE/server'
 import { pmhq } from '@/ntqqapi/native/pmhq'
 import { sleep } from '@/common/utils'
+import EmailNotificationService from '@/common/emailNotification'
+import { EmailConfig } from '@/common/emailConfig'
 
 declare module 'cordis' {
   interface Events {
     'llob/config-updated': (input: LLOBConfig) => void
+    'llbot/email-config-updated': (input: EmailConfig) => void
   }
 }
 
@@ -82,7 +85,7 @@ async function onLoad() {
     enable: config.log!,
     filename: logFileName,
   })
-  ctx.plugin(WebUIServer, { ...config.webui, onlyLocalhost: config.onlyLocalhost })
+  ctx.plugin(WebUIServer, config.webui)
 
   const loadPluginAfterLogin = () => {
     ctx.plugin(Database)
@@ -92,7 +95,6 @@ async function onLoad() {
     ctx.plugin(Core, config)
     ctx.plugin(OneBot11Adapter, {
       ...config.ob11,
-      onlyLocalhost: config.onlyLocalhost,
       musicSignUrl: config.musicSignUrl,
       enableLocalFile2Url: config.enableLocalFile2Url!,
       ffmpeg: config.ffmpeg,
@@ -100,15 +102,12 @@ async function onLoad() {
     ctx.plugin(SatoriAdapter, {
       ...config.satori,
       ffmpeg: config.ffmpeg,
-      onlyLocalhost: config.onlyLocalhost,
     })
-    ctx.plugin(MilkyAdapter, {
-      ...config.milky,
-      onlyLocalhost: config.onlyLocalhost,
-    })
+    ctx.plugin(MilkyAdapter, config.milky)
     ctx.plugin(Store, {
-      msgCacheExpire: config.msgCacheExpire! * 1000,
+      msgCacheExpire: config.msgCacheExpire!,
     })
+    ctx.plugin(EmailNotificationService)
   }
 
   const checkLogin = async () => {

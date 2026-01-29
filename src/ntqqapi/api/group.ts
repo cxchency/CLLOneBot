@@ -248,7 +248,7 @@ export class NTQQGroupApi extends Service {
   }
 
   async getGroupAllInfo(groupCode: string) {
-    return await invoke<GroupAllInfo>(
+    return await invoke(
       'nodeIKernelGroupService/getGroupAllInfo',
       [
         groupCode,
@@ -401,6 +401,7 @@ export class NTQQGroupApi extends Service {
       createTime: '0'
     }])
   }
+
   async deleteGroupAlbum(groupId: string, albumId: string) {
     return await invoke('nodeIKernelAlbumService/deleteAlbum', [Date.now(), groupId, albumId])
   }

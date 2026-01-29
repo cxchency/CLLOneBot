@@ -23,7 +23,8 @@ import {
   createLoginRoutes,
   createLogsRoutes,
   createWebQQRoutes,
-  createNtCallRoutes
+  createNtCallRoutes,
+  createEmailRoutes
 } from './routes'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -43,7 +44,6 @@ declare module 'cordis' {
 }
 
 export interface WebUIServerConfig extends WebUIConfig {
-  onlyLocalhost: boolean
 }
 
 export class WebUIServer extends Service {
@@ -56,7 +56,32 @@ export class WebUIServer extends Service {
   private upload: multer.Multer
   private fileUpload: multer.Multer
   private uploadDir: string
-  static inject = ['ntLoginApi', 'ntFriendApi', 'ntGroupApi', 'ntSystemApi', 'ntMsgApi', 'ntUserApi', 'ntFileApi']
+  static inject = {
+    ntLoginApi: {
+      required: true
+    },
+    ntFriendApi: {
+      required: true
+    },
+    ntGroupApi: {
+      required: true
+    },
+    ntSystemApi: {
+      required: true
+    },
+    ntMsgApi: {
+      required: true
+    },
+    ntUserApi: {
+      required: true
+    },
+    ntFileApi: {
+      required: true
+    },
+    emailNotification: {
+      required: false
+    }
+  }
 
   constructor(ctx: Context, public config: WebUIServerConfig) {
     super(ctx, 'webuiServer', true)
@@ -109,7 +134,7 @@ export class WebUIServer extends Service {
       const oldConfig = { ...this.config }
       this.setConfig(newConfig)
       const forcePort = (oldConfig.port === newConfig.webui?.port) ? this.currentPort : undefined
-      if (oldConfig.onlyLocalhost != newConfig.onlyLocalhost
+      if (oldConfig.host != newConfig.webui?.host
         || oldConfig.enable != newConfig.webui?.enable
         || oldConfig.port != newConfig.webui?.port
       ) {
@@ -130,6 +155,7 @@ export class WebUIServer extends Service {
     this.app.use('/api', createDashboardRoutes(this.ctx))
     this.app.use('/api', createLogsRoutes(this.ctx))
     this.app.use('/api', createNtCallRoutes(this.ctx))
+    this.app.use('/api/email', createEmailRoutes(this.ctx))
     this.app.use('/api/webqq', createWebQQRoutes(this.ctx, {
       upload: this.upload,
       fileUpload: this.fileUpload,
@@ -241,7 +267,7 @@ export class WebUIServer extends Service {
                   }
                 }
               }
-            } catch {}
+            } catch { }
 
             this.broadcastMessage('message', {
               type: 'emoji-reaction',
@@ -263,8 +289,7 @@ export class WebUIServer extends Service {
   }
 
   private getHostPort(): { host: string; port: number } {
-    const host = this.config.onlyLocalhost ? '127.0.0.1' : ''
-    return { host, port: this.config.port }
+    return { host: this.config.host, port: this.config.port }
   }
 
   private async startServer(forcePort?: number) {
@@ -326,7 +351,7 @@ export class WebUIServer extends Service {
   }
 
   public setConfig(newConfig: Config) {
-    this.config = { onlyLocalhost: newConfig.onlyLocalhost, ...newConfig.webui }
+    this.config = newConfig.webui
   }
 
   async start() {

@@ -40,7 +40,13 @@ class Store extends Service {
     super(ctx, 'store', true)
     this.cache = new BidiMap(1000)
     this.messages = new Map()
+  }
+
+  start() {
     this.initDatabase().then().catch(console.error)
+    this.ctx.on('llob/config-updated', async input => {
+      this.config = { msgCacheExpire: input.msgCacheExpire! }
+    })
   }
 
   private async initDatabase() {
@@ -186,13 +192,11 @@ class Store extends Service {
     if (this.messages.size > 10000) {
       // 如果缓存超过10000条，清理最早的
       const firstKey = this.messages.keys().next().value
-      if (firstKey) {
-        this.messages.delete(firstKey)
-      }
+      this.messages.delete(firstKey!)
     }
     setTimeout(() => {
       this.messages.delete(id)
-    }, expire)
+    }, expire * 1000)
   }
 
   getMsgCache(msgId: string) {
@@ -216,7 +220,7 @@ class Store extends Service {
 
 namespace Store {
   export interface Config {
-    /** 单位为毫秒 */
+    /** 单位为秒 */
     msgCacheExpire: number
   }
 }

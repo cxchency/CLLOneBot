@@ -58,24 +58,27 @@ class OneBot11Adapter extends Service {
   ]
   private connect: (OB11Http | OB11HttpPost | OB11WebSocket | OB11WebSocketReverse)[]
   private actionMap: Map<string, BaseAction<unknown, unknown>>
+  private reportOfflineMessage: boolean
 
   constructor(public ctx: Context, public config: OneBot11Adapter.Config) {
     super(ctx, 'onebot', true)
     this.actionMap = initActionMap(this)
+    this.reportOfflineMessage = false
     this.connect = config.connect.map(item => {
+      if (item.reportOfflineMessage) {
+        this.reportOfflineMessage = true
+      }
       if (item.type === 'http') {
         return new OB11Http(ctx, {
           ...item,
-          actionMap: this.actionMap,
-          onlyLocalhost: config.onlyLocalhost
+          actionMap: this.actionMap
         })
       } else if (item.type === 'http-post') {
         return new OB11HttpPost(ctx, item)
       } else if (item.type === 'ws') {
         return new OB11WebSocket(ctx, {
           ...item,
-          actionMap: this.actionMap,
-          onlyLocalhost: config.onlyLocalhost
+          actionMap: this.actionMap
         })
       } else if (item.type === 'ws-reverse') {
         return new OB11WebSocketReverse(ctx, {
@@ -97,7 +100,7 @@ class OneBot11Adapter extends Service {
   public dispatchMessageLike(event: OB11BaseEvent, self: boolean, offline: boolean) {
     for (const item of this.connect) {
       // 这里不 copy 出来的话，更改了 msg.message 会影响下一个 connect
-      item.emitMessageLikeEvent(cloneObj(event) as OB11BaseEvent, self, offline)
+      item.emitMessageLikeEvent(cloneObj(event), self, offline)
     }
   }
 
@@ -146,6 +149,10 @@ class OneBot11Adapter extends Service {
   }
 
   private handleMsg(message: RawMessage, self: boolean, offline: boolean) {
+    if (offline && !this.reportOfflineMessage) {
+      return
+    }
+
     OB11Entities.message(this.ctx, message).then(msg => {
       if (!msg) {
         return
@@ -236,20 +243,22 @@ class OneBot11Adapter extends Service {
       }
     }
     if (config.ob11.enable) {
+      this.reportOfflineMessage = false
       this.connect = config.ob11.connect.map(item => {
+        if (item.reportOfflineMessage) {
+          this.reportOfflineMessage = true
+        }
         if (item.type === 'http') {
           return new OB11Http(this.ctx, {
             ...item,
-            actionMap: this.actionMap,
-            onlyLocalhost: config.onlyLocalhost
+            actionMap: this.actionMap
           })
         } else if (item.type === 'http-post') {
           return new OB11HttpPost(this.ctx, item)
         } else if (item.type === 'ws') {
           return new OB11WebSocket(this.ctx, {
             ...item,
-            actionMap: this.actionMap,
-            onlyLocalhost: config.onlyLocalhost
+            actionMap: this.actionMap
           })
         } else if (item.type === 'ws-reverse') {
           return new OB11WebSocketReverse(this.ctx, {
@@ -574,7 +583,6 @@ class OneBot11Adapter extends Service {
 
 namespace OneBot11Adapter {
   export interface Config extends OB11Config {
-    onlyLocalhost: boolean
     musicSignUrl?: string
     enableLocalFile2Url: boolean
     ffmpeg?: string
